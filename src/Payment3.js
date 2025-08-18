@@ -28,6 +28,10 @@ const Payment = () => {
   // 配置
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
+
+  const SOLANA_NETWORK = process.env.REACT_APP_SOLANA_NETWORK || 'https://api.devnet.solana.com';
+
+
   // ==================== Navigation Functions ====================
  const navigateToLogin = () => {
   console.log('Navigating to login...');
@@ -149,7 +153,7 @@ const Payment = () => {
       const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = solanaWeb3;
       
       const connection = new Connection(
-        'https://api.devnet.solana.com',
+        SOLANA_NETWORK,
         'confirmed'
       );
       

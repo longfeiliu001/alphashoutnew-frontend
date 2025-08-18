@@ -742,12 +742,43 @@ const LoginBoxInternal = () => {
   const { user, quota, login, register, logout, refreshQuota } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false); // 新增狀態
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
+
+  // 處理忘記密碼
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setMessage('Please enter your email address');
+      setMessageType('error');
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const data = await ApiService.forgotPassword(email);
+      setMessage(data.message);
+      setMessageType('success');
+      
+      // 3秒後返回登入頁面
+      setTimeout(() => {
+        setIsForgotPassword(false);
+        setMessage('');
+      }, 3000);
+    } catch (error) {
+      setMessage(error.message || 'Failed to send reset email');
+      setMessageType('error');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleSubmit = async () => {
     if (!email || !password) {
       setMessage('Please fill in all fields');

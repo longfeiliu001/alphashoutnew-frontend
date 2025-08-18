@@ -27,7 +27,7 @@ const LandingPage = () => {
   const [activeStrategy, setActiveStrategy] = useState(0);
   const [hoveredCard, setHoveredCard] = useState(null);
 
-  // Munich Re inspired color palette
+  // AlphaShout inspired color palette
   const colors = {
     primary: '#003d7a',      // Deep blue
     primaryLight: '#005eb8', 
