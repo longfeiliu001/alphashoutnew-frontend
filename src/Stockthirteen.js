@@ -9,6 +9,13 @@ const { TabPane } = Tabs;
 
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// 添加这个配额配置
+const STOCK_ANALYSIS_QUOTA = {
+  ANALYSE_COST: 3,
+  REFRESH_COST: 1,
+  REFRESH_DEEP_COST: 2,
+  STOCK_TECH_ANALYSE_COST: 2
+};
 
 // Cache key for localStorage
 const CACHE_KEY = 'stocknine_analysis_cache';
@@ -442,7 +449,10 @@ const RefreshButton = ({ onClick, loading, dataType, isAuthenticated }) => {
 };
 
 // Enhanced Deep Analysis Button Component without Cancel functionality
+// Enhanced Deep Analysis Button Component with timeout info
 const DeepAnalysisButton = ({ onClick, loading, dataType, isAuthenticated }) => {
+  const [showTimeoutInfo, setShowTimeoutInfo] = useState(false);
+  
   const handleClick = () => {
     if (!isAuthenticated) {
       showAlphaShoutMessage('warning', (
@@ -461,38 +471,55 @@ const DeepAnalysisButton = ({ onClick, loading, dataType, isAuthenticated }) => 
   };
 
   return (
-    <div style={{ marginLeft: '8px' }}>
-      <button
-        onClick={handleClick}
-        disabled={loading}
-        style={{
-          background: loading ? AlphaShoutTheme.colors.surfaceSecondary : AlphaShoutTheme.colors.deepAnalysis,
-          border: `1px solid ${AlphaShoutTheme.colors.deepAnalysis}`,
-          borderRadius: AlphaShoutTheme.radius.medium,
-          padding: '4px 10px',
-          color: AlphaShoutTheme.colors.textInverse,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: '11px',
-          fontWeight: 500,
-          fontFamily: AlphaShoutTheme.fonts.primary,
-          transition: 'all 0.2s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}
+    <div style={{ marginLeft: '8px', position: 'relative' }}>
+      <Tooltip 
+        title={
+          <div style={{ fontSize: '12px' }}>
+            <strong>Deep Analysis Features:</strong>
+            <br />• Enhanced AI-powered insights
+            <br />• Detailed trend analysis
+            <br />• Predictive metrics
+            <br />• Up to 10 minutes processing time
+            <br />• Auto-refund if timeout occurs
+          </div>
+        }
+        placement="bottom"
       >
-        {loading ? (
-          <>
-            <Spin size="small" style={{ color: 'white' }} />
-            Analyzing...
-          </>
-        ) : (
-          <>
-            <ExperimentOutlined style={{ fontSize: '10px' }} />
-            Deep Analysis (2 tokens)
-          </>
-        )}
-      </button>
+        <button
+          onClick={handleClick}
+          disabled={loading}
+          onMouseEnter={() => setShowTimeoutInfo(true)}
+          onMouseLeave={() => setShowTimeoutInfo(false)}
+          style={{
+            background: loading ? AlphaShoutTheme.colors.surfaceSecondary : AlphaShoutTheme.colors.deepAnalysis,
+            border: `1px solid ${AlphaShoutTheme.colors.deepAnalysis}`,
+            borderRadius: AlphaShoutTheme.radius.medium,
+            padding: '4px 10px',
+            color: AlphaShoutTheme.colors.textInverse,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '11px',
+            fontWeight: 500,
+            fontFamily: AlphaShoutTheme.fonts.primary,
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          {loading ? (
+            <>
+              <Spin size="small" style={{ color: 'white' }} />
+              <span>Analyzing...</span>
+              <ClockCircleOutlined style={{ fontSize: '10px', marginLeft: '4px' }} />
+            </>
+          ) : (
+            <>
+              <ExperimentOutlined style={{ fontSize: '10px' }} />
+              Deep Analysis (2 tokens)
+            </>
+          )}
+        </button>
+      </Tooltip>
     </div>
   );
 };
@@ -1718,90 +1745,151 @@ export default function StockAnalysisDashboard() {
   };
   
   // Deep Analysis with global tracking
-  const handleDeepAnalysis = async (analysisType) => {
-    if (!query.trim()) {
-      showAlphaShoutMessage('warning', 'Please select a stock symbol first');
-      return;
-    }
+  // Deep Analysis with global tracking and 10-minute timeout
+const handleDeepAnalysis = async (analysisType) => {
+  if (!query.trim()) {
+    showAlphaShoutMessage('warning', 'Please select a stock symbol first');
+    return;
+  }
+  
+  if (!isAuthenticated) {
+    return;
+  }
+  
+  const operationId = `deep-${analysisType}-${Date.now()}`;
+  addActiveOperation(operationId);
+  
+  const loadingKey = `deep${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)}`;
+  
+  setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
+  
+  // Show initial loading message with timeout info
+  showAlphaShoutMessage('info', 
+    <span>
+      Starting deep analysis for {analysisType}. This may take up to 10 minutes...
+      <br />
+      <small style={{ opacity: 0.8 }}>Don't worry - if it times out, your tokens will be refunded automatically.</small>
+    </span>, 
+    6
+  );
+  
+  const abortController = new AbortController();
+  setAbortController(operationId, abortController);
+  
+  // Set frontend timeout (slightly longer than backend to account for network latency)
+  const frontendTimeoutId = setTimeout(() => {
+    abortController.abort();
+    showAlphaShoutMessage('warning', 
+      <span>
+        Deep analysis is taking longer than expected. 
+        <br />
+        If it times out after 10 minutes, your tokens will be automatically refunded.
+      </span>,
+      8
+    );
+  }, 9.5 * 60 * 1000); // 9.5 minutes
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/stock/deep-analysis`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ 
+        symbol: query, 
+        analysisType
+      }),
+      signal: abortController.signal
+    });
     
-    if (!isAuthenticated) {
-      return;
-    }
+    const data = await response.json();
     
-    const operationId = `deep-${analysisType}-${Date.now()}`;
-    addActiveOperation(operationId);
+    // Clear the frontend timeout
+    clearTimeout(frontendTimeoutId);
     
-    const loadingKey = `deep${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)}`;
-    
-    setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
-    
-    const abortController = new AbortController();
-    setAbortController(operationId, abortController);
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/stock/deep-analysis`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          symbol: query, 
-          analysisType
-        }),
-        signal: abortController.signal
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok || !data.success) {
-        if (data.error === 'INSUFFICIENT_QUOTA') {
-          showAlphaShoutMessage('warning', (
-            <span>
-              You need <strong>{data.required} tokens</strong> for deep analysis. 
-              Your balance: <strong>{data.available} tokens</strong>. 
-              <a 
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-payment', { detail: { page: 'payment2' } }))}
-                style={{ 
-                  color: AlphaShoutTheme.colors.primary, 
-                  textDecoration: 'underline', 
-                  cursor: 'pointer',
-                  marginLeft: '8px',
-                  fontWeight: 'bold'
-                }}
-              >
-                Go to Billing
-              </a>
-            </span>
-          ), 5);
-        } else {
-          showAlphaShoutMessage('error', data.message || 'Deep analysis failed');
-        }
-        setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
-        removeActiveOperation(operationId);
-        return;
+    if (!response.ok || !data.success) {
+      if (data.error === 'INSUFFICIENT_QUOTA') {
+        showAlphaShoutMessage('warning', (
+          <span>
+            You need <strong>{data.required} tokens</strong> for deep analysis. 
+            Your balance: <strong>{data.available} tokens</strong>. 
+            <a 
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-payment', { detail: { page: 'payment2' } }))}
+              style={{ 
+                color: AlphaShoutTheme.colors.primary, 
+                textDecoration: 'underline', 
+                cursor: 'pointer',
+                marginLeft: '8px',
+                fontWeight: 'bold'
+              }}
+            >
+              Go to Billing
+            </a>
+          </span>
+        ), 5);
+      } else if (data.error === 'DEEP_ANALYSIS_TIMEOUT') {
+        // 特殊处理超时情况
+        showAlphaShoutMessage('info', 
+          <span>
+            <CheckCircleOutlined style={{ color: AlphaShoutTheme.colors.success, marginRight: '8px' }} />
+            Deep analysis timed out after 10 minutes. 
+            <strong> Your {data.quota?.deducted || STOCK_ANALYSIS_QUOTA.REFRESH_DEEP_COST || 2} tokens have been refunded.</strong>
+            <br />
+            <small>Please try again later or contact support if the issue persists.</small>
+          </span>,
+          8
+        );
+      } else {
+        showAlphaShoutMessage('error', 
+          <span>
+            {data.message || 'Deep analysis failed'}
+            {data.quotaRefunded && (
+              <>
+                <br />
+                <CheckCircleOutlined style={{ color: AlphaShoutTheme.colors.success, marginRight: '4px' }} />
+                <strong>Your tokens have been refunded.</strong>
+              </>
+            )}
+          </span>
+        );
       }
-      
-      showAlphaShoutMessage('success', `Deep analysis completed! ${data.quota.deducted} tokens used.`);
-      
-      if (userQuota) {
-        setUserQuota({ ...userQuota, available_quota: data.quota.remaining });
-      }
-      
-      // Store deep analysis data globally
-      setDeepAnalysisData(prev => ({
-        ...prev,
-        [analysisType]: data.data
-      }));
-      
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Deep analysis error:', error);
-        showAlphaShoutMessage('error', 'Deep analysis failed');
-      }
-    } finally {
       setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
       removeActiveOperation(operationId);
+      return;
     }
-  };
+    
+    showAlphaShoutMessage('success', `Deep analysis completed! ${data.quota.deducted} tokens used.`);
+    
+    if (userQuota) {
+      setUserQuota({ ...userQuota, available_quota: data.quota.remaining });
+    }
+    
+    // Store deep analysis data globally
+    setDeepAnalysisData(prev => ({
+      ...prev,
+      [analysisType]: data.data
+    }));
+    
+  } catch (error) {
+    clearTimeout(frontendTimeoutId);
+    
+    if (error.name === 'AbortError') {
+      showAlphaShoutMessage('info', 
+        <span>
+          <ClockCircleOutlined style={{ marginRight: '8px' }} />
+          Deep analysis was cancelled or timed out. 
+          <br />
+          <small>If tokens were deducted, they will be automatically refunded.</small>
+        </span>
+      );
+    } else {
+      console.error('Deep analysis error:', error);
+      showAlphaShoutMessage('error', 'Deep analysis failed due to network error');
+    }
+  } finally {
+    setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
+    removeActiveOperation(operationId);
+  }
+};
   
   // Select Symbol
   const selectSymbol = (symbol) => {
