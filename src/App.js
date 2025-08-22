@@ -1,6 +1,13 @@
+// src/App.js
+// 版本: 最新版 (集成完整 SEO 功能)
+// 更新日期: 2025-08-22
+
 import logo from './logo.svg';
 import './App.css';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+
+// 导入 SEO Hook - 最新版本
+import { useSEO } from './hooks/useSEO';
 
 import Solana from './Solana';
 import Supabase from './Supabase';
@@ -207,6 +214,81 @@ function AppContent() {
 
  // Check if we're on password reset page
  const [isPasswordResetPage, setIsPasswordResetPage] = useState(false);
+
+ // 动态 SEO 配置函数 - 最新版本，包含更丰富的关键词和描述
+ const getSEOProps = () => {
+   const currentKey = selectedKeys[0];
+   
+   switch(currentKey) {
+     case '1':
+       return {
+         title: "Portfolio Optimization - 8 Professional Strategies | ALPHASHOUT",
+         description: "Advanced portfolio optimization with institutional strategies: Risk Parity, Sharpe Optimization, Minimum Variance, CAPM. Global asset coverage with Monte Carlo simulation, backtesting, and professional PDF reports. Democratizing hedge fund-level analytics.",
+         keywords: "portfolio optimization, risk parity, sharpe ratio, minimum variance, CAPM, asset allocation, modern portfolio theory, diversification, monte carlo simulation, institutional strategies, hedge fund analytics, quantitative finance, portfolio management",
+         image: "/portfolio-optimization-preview.jpg",
+         url: "https://alphashout.app/portfolio-optimization"
+       };
+     case '2':
+       return {
+         title: "AI Stock Analysis & Financial Reports | ALPHASHOUT", 
+         description: "Real-time AI-powered equity research with comprehensive financial statement analysis. Deep-dive quarterly earnings, revenue trends, profitability metrics, cash flow analysis, and risk assessment with peer comparison. Professional-grade fundamental analysis.",
+         keywords: "stock analysis, equity research, financial statements, earnings analysis, AI stock analysis, fundamental analysis, company valuation, financial reports, quarterly earnings, revenue analysis, cash flow, balance sheet analysis, income statement",
+         image: "/stock-analysis-preview.jpg",
+         url: "https://alphashout.app/stock-analysis"
+       };
+     case '3':
+       return {
+         title: "Transparent Pricing - Pay Per Use | ALPHASHOUT",
+         description: "Simple token-based pricing at $0.10 per analysis. No subscriptions, no hidden fees, no commitments. Professional-grade investment tools at accessible prices. Free trial available. Democratizing institutional analytics pricing.",
+         keywords: "investment tools pricing, stock analysis cost, portfolio optimization pricing, financial analysis subscription, pay per use, token pricing, affordable investment tools, transparent pricing, no subscription fees",
+         image: "/pricing-preview.jpg",
+         url: "https://alphashout.app/pricing"
+       };
+     case '7':
+       return {
+         title: "AI Technical Chart Analysis - Pattern Recognition | ALPHASHOUT",
+         description: "Upload trading charts for instant AI analysis. Automated MACD interpretation, support/resistance detection, pattern recognition, trend analysis, and technical indicator analysis with professional trading insights and signals.",
+         keywords: "technical analysis, chart analysis, MACD, support resistance, pattern recognition, technical indicators, AI chart analysis, trading signals, technical patterns, trend analysis, momentum indicators, volume analysis",
+         image: "/technical-analysis-preview.jpg",
+         url: "https://alphashout.app/technical-analysis"
+       };
+     case '8':
+       return {
+         title: "About ALPHASHOUT - Democratizing Investment Analytics",
+         description: "Our mission: democratizing institutional-grade financial analysis. Professional investment tools with bank-grade security, real-time data, AI-powered insights, and enterprise-level analytics accessible to individual investors and small firms.",
+         keywords: "about alphashout, investment analytics platform, financial technology, democratizing finance, institutional tools, fintech, investment platform, financial analysis tools, AI finance, quantitative investing",
+         image: "/about-preview.jpg",
+         url: "https://alphashout.app/about"
+       };
+     case '9':
+       return {
+         title: "Historical Market Data Analysis - Backtesting Tools | ALPHASHOUT",
+         description: "Comprehensive historical market data analysis with advanced algorithms. Multi-timeframe backtesting, trend analysis, volatility studies, correlation analysis, and data-driven investment insights for informed decision making and strategy validation.",
+         keywords: "historical data analysis, market data, backtesting, historical stock prices, market trends, data analytics, quantitative analysis, investment research, volatility analysis, correlation studies, time series analysis",
+         image: "/historical-data-preview.jpg",
+         url: "https://alphashout.app/historical-data"
+       };
+     case '4':
+       return {
+         title: "User Dashboard & Profile | ALPHASHOUT",
+         description: "Secure user dashboard with analysis history, token management, account settings, and personalized investment insights. Track your analysis usage, manage preferences, and access premium features.",
+         keywords: "user dashboard, account management, analysis history, token usage, user profile, investment tracking, account settings, premium features",
+         image: "/dashboard-preview.jpg",
+         url: "https://alphashout.app/dashboard"
+       };
+     default:
+       return {
+         title: "ALPHASHOUT - Institutional-Grade Investment Analytics for Everyone",
+         description: "Democratizing financial analysis with AI-powered tools. Professional equity research, portfolio optimization, technical analysis, and risk management. Real-time market data with institutional-grade insights at accessible prices. $0.10 per analysis.",
+         keywords: "investment analytics, stock analysis, portfolio optimization, financial analysis, AI trading tools, institutional grade, democratizing finance, alphashout, quantitative finance, financial technology, investment research",
+         image: "/alphashout-home-preview.jpg",
+         url: "https://alphashout.app"
+       };
+   }
+ };
+
+ // 应用动态 SEO - 最新版本
+ useSEO(getSEOProps());
 
  // Check URL for password reset route
  useEffect(() => {
@@ -505,7 +587,7 @@ function AppContent() {
          : '0 2px 8px rgba(0,0,0,0.1)',
        borderBottom: isScrolled ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
      }}>
-       {/* Logo with hover effect */}
+       {/* Logo with hover effect - 你的真实 Clover 图标 */}
        <div
          style={{
            fontSize: isScrolled ? '24px' : '32px',
@@ -522,6 +604,8 @@ function AppContent() {
          onMouseLeave={(e) => {
            e.currentTarget.style.transform = 'scale(1)';
          }}
+         onClick={() => setSelectedKeys(['2'])}
+         title="ALPHASHOUT Home"
        >
          <Clover
            size={isScrolled ? 20 : 24}

@@ -1,3 +1,17 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# 网站地图
+Sitemap: https://alphashout.app/sitemap.xml
+
+# 爬虫延迟
+Crawl-delay: 1
+
+# 不允许爬虫访问的路径
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# 针对移动端爬虫优化
+User-agent: Googlebot-Mobile
+Allow: /

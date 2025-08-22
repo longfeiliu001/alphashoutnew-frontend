@@ -1,23 +1,23 @@
 // Payment.js - Professional Enterprise Style with Multi-Wallet Support
 import React, { useState, useEffect } from 'react';
-// 导入图片
+// 導入圖片
 import phantomLogo from './logo/phantom.png';
 import bitgetLogo from './logo/bitget_logo.png';
 import solflareLogo from './logo/solflare_logo.png';
-import solanaLogo from './logo/Solana_logo.png';  // 注意大写 S
+import solanaLogo from './logo/Solana_logo.png';  // 注意大寫 S
 
 const Payment4 = () => {
-  // 用户状态
+  // 用戶狀態
   const [user, setUser] = useState(null);
   const [quota, setQuota] = useState(0);
   const [loading, setLoading] = useState(true);
   
-  // 支付状态
+  // 支付狀態
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
   const [processing, setProcessing] = useState(false);
   
-  // 汇率配置
+  // 匯率配置
   const [exchangeRates, setExchangeRates] = useState({
     SOL: 1500
   });
@@ -26,11 +26,11 @@ const Payment4 = () => {
   });
   const [defaultSolanaAddress, setDefaultSolanaAddress] = useState('');
   
-  // Solana 相关
+  // Solana 相關
   const [solanaWallet, setSolanaWallet] = useState(null);
   const [solAmount, setSolAmount] = useState('0.1');
   
-  // 多钱包支持
+  // 多錢包支持
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [availableWallets, setAvailableWallets] = useState([]);
   const [showWalletSelector, setShowWalletSelector] = useState(false);
@@ -39,7 +39,7 @@ const Payment4 = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const SOLANA_NETWORK = process.env.REACT_APP_SOLANA_NETWORK || 'https://api.devnet.solana.com';
 
-  // ==================== 统一的图标样式 ====================
+  // ==================== 統一的圖標樣式 ====================
   const iconStyle = {
     width: '24px',
     height: '24px',
@@ -47,7 +47,7 @@ const Payment4 = () => {
     objectFit: 'cover'
   };
 
-  // ==================== 钱包配置 ====================
+  // ==================== 錢包配置 ====================
   const SUPPORTED_WALLETS = {
     phantom: {
       name: 'Phantom',
@@ -83,7 +83,7 @@ const Payment4 = () => {
           alt="Solflare"
           style={{
             ...iconStyle,
-            backgroundColor: '#000'  // 黑色背景，因为 Solflare logo 可能是透明的
+            backgroundColor: '#000'  // 黑色背景，因為 Solflare logo 可能是透明的
           }}
         />
       ),
@@ -105,7 +105,7 @@ const Payment4 = () => {
     fetchExchangeRates();
   }, []);
 
-  // 检测可用钱包
+  // 檢測可用錢包
   useEffect(() => {
     const checkAvailableWallets = () => {
       const wallets = [];
@@ -116,16 +116,16 @@ const Payment4 = () => {
       });
       setAvailableWallets(wallets);
       
-      // 如果只有一个钱包，自动选择
+      // 如果只有一個錢包，自動選擇
       if (wallets.length === 1) {
         setSelectedWallet(wallets[0]);
       }
     };
 
-    // 初始检查
+    // 初始檢查
     checkAvailableWallets();
     
-    // 延迟检查（有些钱包加载较慢）
+    // 延遲檢查（有些錢包加載較慢）
     setTimeout(checkAvailableWallets, 1000);
   }, []);
 
@@ -190,7 +190,7 @@ const Payment4 = () => {
     }
   };
 
-  // ==================== 通用连接钱包函数 ====================
+  // ==================== 通用連接錢包函數 ====================
   const connectWallet = async (walletKey) => {
     const wallet = SUPPORTED_WALLETS[walletKey];
     if (!wallet) return;
@@ -251,14 +251,20 @@ const Payment4 = () => {
       
       const connection = new Connection(SOLANA_NETWORK, 'confirmed');
       
+      // Get the public key safely
+      const walletPublicKey = solanaWallet.publicKey?.toString() || solanaWallet.publicKey;
+      if (!walletPublicKey) {
+        throw new Error('Unable to get wallet public key');
+      }
+      
       const transaction = new Transaction();
       const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
-      transaction.feePayer = new PublicKey(solanaWallet.publicKey.toString());
+      transaction.feePayer = new PublicKey(walletPublicKey);
       
       transaction.add(
         SystemProgram.transfer({
-          fromPubkey: new PublicKey(solanaWallet.publicKey.toString()),
+          fromPubkey: new PublicKey(walletPublicKey),
           toPubkey: new PublicKey(defaultSolanaAddress),
           lamports: Math.floor(solAmountNum * LAMPORTS_PER_SOL),
         })
@@ -267,14 +273,14 @@ const Payment4 = () => {
       setMessage('Please confirm the transaction in your wallet...');
       setMessageType('info');
       
-      // 使用通用的签名和发送方法
+      // 使用通用的簽名和發送方法
       let signature;
       if (solanaWallet.signAndSendTransaction) {
         // Phantom 和 Bitget 的方式
         const result = await solanaWallet.signAndSendTransaction(transaction);
         signature = result.signature;
       } else if (solanaWallet.signTransaction && solanaWallet.sendTransaction) {
-        // Solflare 可能需要这种方式
+        // Solflare 可能需要這種方式
         const signedTransaction = await solanaWallet.signTransaction(transaction);
         signature = await connection.sendRawTransaction(signedTransaction.serialize());
       } else {
@@ -306,7 +312,7 @@ const Payment4 = () => {
         body: JSON.stringify({
           signature: signature,
           amount: solAmountNum,
-          fromPublicKey: solanaWallet.publicKey.toString(),
+          fromPublicKey: walletPublicKey,
         }),
       });
 
@@ -357,7 +363,7 @@ const Payment4 = () => {
     }
   };
 
-  // ==================== 钱包选择器 UI ====================
+  // ==================== 錢包選擇器 UI ====================
   const WalletSelector = () => (
     <div style={styles.walletSelectorModal} onClick={() => setShowWalletSelector(false)}>
       <div style={styles.walletSelectorContent} onClick={(e) => e.stopPropagation()}>
@@ -504,7 +510,7 @@ const Payment4 = () => {
                   {processing ? 'Connecting...' : 'Connect Wallet'}
                 </button>
                 
-                {/* 显示支持的钱包列表 */}
+                {/* 顯示支持的錢包列表 */}
                 <div style={styles.supportedWallets}>
                   <p style={styles.supportedWalletsText}>Supported wallets:</p>
                   <div style={styles.walletIcons}>
@@ -533,7 +539,10 @@ const Payment4 = () => {
                       </span>
                     </div>
                     <div style={styles.walletAddress}>
-                      {solanaWallet.publicKey.toString().slice(0, 8)}...{solanaWallet.publicKey.toString().slice(-8)}
+                      {solanaWallet.publicKey ? 
+                        `${solanaWallet.publicKey.toString().slice(0, 8)}...${solanaWallet.publicKey.toString().slice(-8)}` : 
+                        'Connected'
+                      }
                     </div>
                   </div>
                   <button
@@ -1114,7 +1123,7 @@ const styles = {
     fontSize: '14px',
     color: '#6c757d',
   },
-  // 多钱包支持新增样式
+  // 多錢包支持新增樣式
   walletSelectorModal: {
     position: 'fixed',
     top: 0,

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+    <msapplication>
+        <tile>
+            <!-- 使用你现有的 logo192.png 代替 mstile-150x150.png -->
+            <square150x150logo src="/logo192.png"/>
+            <TileColor>#003d7a</TileColor>
+        </tile>
+    </msapplication>
+</browserconfig>
