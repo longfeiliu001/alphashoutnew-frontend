@@ -1313,61 +1313,91 @@ const LoginBoxInternal = () => {
     return false;
   };
 
-  const handleSubmit = async () => {
-    if (!email || !password) {
-      setMessage('Please fill in all fields');
-      setMessageType('error');
-      return;
-    }
+ const handleSubmit = async () => {
+  if (!email || !password) {
+    setMessage('Please fill in all fields');
+    setMessageType('error');
+    return;
+  }
 
-    // 清理邮箱（去除空格，转小写）
-    const cleanEmail = email.trim().toLowerCase();
-    
-    setLoading(true);
-    setMessage('');
-    setShowAppleHelp(false); // 清除之前的Apple帮助提示
+  const cleanEmail = email.trim().toLowerCase();
+  
+  setLoading(true);
+  setMessage('');
+  setShowAppleHelp(false);
 
-    try {
-      const data = isLogin 
-        ? await login(cleanEmail, password)
-        : await register(cleanEmail, password);
+  try {
+    const data = isLogin 
+      ? await login(cleanEmail, password)
+      : await register(cleanEmail, password);
 
-      setMessage(data.message || (isLogin ? 'Login successful!' : 'Registration successful!'));
-      setMessageType('success');
+    // 🔥 新增：登录成功后验证Cookie是否真的设置了
+    const userAgent = navigator.userAgent;
+    const isIOSSafari = /iPad|iPhone/.test(userAgent) && 
+                       userAgent.includes('Safari') && 
+                       !userAgent.includes('Chrome');
+
+    if (isLogin && isIOSSafari) {
+      // iPad/iPhone Safari需要验证Cookie是否真的工作
+      console.log('🍎 iPad Safari登录成功，验证Cookie状态...');
       
-      if (isLogin || data.quota !== undefined) {
-        setEmail('');
-        setPassword('');
-      }
-    } catch (error) {
-      // 🔥 新添加 - Apple设备特殊处理
-      if (checkAppleLoginIssue(error)) {
-        setMessage('Login may be affected by Safari privacy settings. Please check the configuration guide above.');
-        setMessageType('warning');
-      } else {
-        // 处理重复注册错误
-        if (!isLogin && error.message && (
-          error.message.includes('already registered') ||
-          error.message.includes('already exists')
-        )) {
-          setMessage('This email is already registered. Switching to login...');
-          setMessageType('warning');
+      // 等待Cookie设置完成，然后测试
+      setTimeout(async () => {
+        try {
+          await ApiService.getCurrentUser(); // 测试认证是否有效
+          console.log('✅ iPad Safari Cookie验证成功');
+        } catch (verifyError) {
+          console.log('❌ iPad Safari Cookie验证失败:', verifyError);
           
-          // 自动切换到登录模式
-          setTimeout(() => {
-            setIsLogin(true);
-            setMessage('Please enter your password to sign in');
-            setMessageType('info');
-          }, 2000);
-        } else {
-          setMessage(error.message || (isLogin ? 'Login failed' : 'Registration failed'));
-          setMessageType('error');
+          // Cookie设置失败，显示Safari配置提示
+          if (verifyError.message && (
+            verifyError.message.includes('401') ||
+            verifyError.message.includes('No access token') ||
+            verifyError.message.includes('Unauthorized')
+          )) {
+            setShowAppleHelp(true);
+            setMessage('Login successful, but Safari privacy settings may prevent session persistence. Please check the configuration guide above.');
+            setMessageType('warning');
+          }
         }
-      }
-    } finally {
-      setLoading(false);
+      }, 1000); // 给Cookie设置一些时间
     }
-  };
+
+    setMessage(data.message || (isLogin ? 'Login successful!' : 'Registration successful!'));
+    setMessageType('success');
+    
+    if (isLogin || data.quota !== undefined) {
+      setEmail('');
+      setPassword('');
+    }
+  } catch (error) {
+    // 🔥 原有的Apple设备特殊处理
+    if (checkAppleLoginIssue(error)) {
+      setMessage('Login may be affected by Safari privacy settings. Please check the configuration guide above.');
+      setMessageType('warning');
+    } else {
+      // 原有错误处理...
+      if (!isLogin && error.message && (
+        error.message.includes('already registered') ||
+        error.message.includes('already exists')
+      )) {
+        setMessage('This email is already registered. Switching to login...');
+        setMessageType('warning');
+        
+        setTimeout(() => {
+          setIsLogin(true);
+          setMessage('Please enter your password to sign in');
+          setMessageType('info');
+        }, 2000);
+      } else {
+        setMessage(error.message || (isLogin ? 'Login failed' : 'Registration failed'));
+        setMessageType('error');
+      }
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleForgotPassword = async () => {
     if (!email) {
@@ -1417,23 +1447,53 @@ const LoginBoxInternal = () => {
   };
 
   const handleGoogleLogin = async (credential) => {
-    try {
-      const data = await loginWithGoogle(credential);
-      setMessage(data.message || 'Google Login Successful!');
-      setMessageType('success');
-      setEmail('');
-      setPassword('');
-    } catch (error) {
-      // 🔥 新添加 - Google登录的Apple设备特殊处理
-      if (checkAppleLoginIssue(error)) {
-        setMessage('Google login may be affected by Safari privacy settings. Please check the configuration guide above.');
-        setMessageType('warning');
-      } else {
-        setMessage(error.message || 'Google Login Failed!');
-        setMessageType('error');
-      }
+  try {
+    const data = await loginWithGoogle(credential);
+    
+    // 🔥 Google登录的Cookie验证
+    const userAgent = navigator.userAgent;
+    const isIOSSafari = /iPad|iPhone/.test(userAgent) && 
+                       userAgent.includes('Safari') && 
+                       !userAgent.includes('Chrome');
+
+    if (isIOSSafari) {
+      console.log('🍎 iPad Safari Google登录成功，验证Cookie状态...');
+      
+      setTimeout(async () => {
+        try {
+          await ApiService.getCurrentUser();
+          console.log('✅ iPad Safari Google Cookie验证成功');
+        } catch (verifyError) {
+          console.log('❌ iPad Safari Google Cookie验证失败:', verifyError);
+          
+          if (verifyError.message && (
+            verifyError.message.includes('401') ||
+            verifyError.message.includes('No access token') ||
+            verifyError.message.includes('Unauthorized')
+          )) {
+            setShowAppleHelp(true);
+            setMessage('Google login successful, but Safari privacy settings may prevent session persistence. Please check the configuration guide above.');
+            setMessageType('warning');
+          }
+        }
+      }, 1000);
     }
-  };
+
+    setMessage(data.message || 'Google Login Successful!');
+    setMessageType('success');
+    setEmail('');
+    setPassword('');
+  } catch (error) {
+    // 🔥 原有的Google登录Apple设备特殊处理
+    if (checkAppleLoginIssue(error)) {
+      setMessage('Google login may be affected by Safari privacy settings. Please check the configuration guide above.');
+      setMessageType('warning');
+    } else {
+      setMessage(error.message || 'Google Login Failed!');
+      setMessageType('error');
+    }
+  }
+};
 
   // Logged in state
   if (user) {
