@@ -37,6 +37,323 @@ const AlphaShoutTheme = {
   }
 };
 
+// 🔥 新添加 - AppleDeviceGuide组件
+const AppleDeviceGuide = () => {
+  const [showGuide, setShowGuide] = useState(false);
+  const [deviceType, setDeviceType] = useState('');
+
+  useEffect(() => {
+    const userAgent = navigator.userAgent;
+    const isAppleDevice = /iPad|iPhone|iPod|Mac/.test(userAgent);
+    const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
+    
+    if (!isAppleDevice || !isSafari) return;
+
+    let device = '';
+    if (userAgent.includes('iPad') || (userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1)) {
+      device = 'iPad';
+    } else if (userAgent.includes('iPhone')) {
+      device = 'iPhone';
+    } else if (userAgent.includes('Macintosh')) {
+      device = 'Mac';
+    }
+
+    setDeviceType(device);
+
+    const hasShown = sessionStorage.getItem(`munich_apple_guide_${device}`);
+    if (!hasShown) {
+      setShowGuide(true);
+    }
+  }, []);
+
+  const handleDismiss = (action) => {
+    setShowGuide(false);
+    if (action === 'dont-show') {
+      sessionStorage.setItem(`munich_apple_guide_${deviceType}`, 'true');
+    }
+  };
+
+  const getDeviceInstructions = () => {
+    switch (deviceType) {
+      case 'iPad':
+      case 'iPhone':
+        return {
+          title: `${deviceType} Safari Configuration`,
+          steps: [
+            'Open Settings application',
+            'Navigate to Safari settings',
+            'Select "Privacy & Security"',
+            'Disable "Prevent Cross-Site Tracking"',
+            'Ensure "Block All Cookies" is disabled',
+            'Return to Safari and retry login'
+          ],
+          urgency: 'high'
+        };
+      case 'Mac':
+        return {
+          title: 'Mac Safari Configuration',
+          steps: [
+            'Open Safari Preferences',
+            'Navigate to Privacy tab',
+            'Uncheck "Prevent cross-site tracking"',
+            'Ensure "Block all cookies" is unchecked',
+            'Retry login process'
+          ],
+          urgency: 'medium'
+        };
+      default:
+        return null;
+    }
+  };
+
+  if (!showGuide || !deviceType) return null;
+
+  const instructions = getDeviceInstructions();
+  if (!instructions) return null;
+
+  const isHighPriority = instructions.urgency === 'high';
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      padding: '20px'
+    }}>
+      <div style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid #e0e0e0',
+        maxWidth: '480px',
+        width: '100%',
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+        position: 'relative'
+      }}>
+        
+        {/* Header */}
+        <div style={{
+          backgroundColor: '#005AA0',
+          color: '#ffffff',
+          padding: '20px 24px',
+          borderBottom: '1px solid #004080'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start'
+          }}>
+            <div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                margin: '0 0 4px 0',
+                letterSpacing: '0.3px'
+              }}>
+                Browser Configuration Required
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                margin: 0,
+                opacity: 0.9,
+                fontWeight: '400'
+              }}>
+                {instructions.title}
+              </p>
+            </div>
+            
+            <button
+              onClick={() => handleDismiss('close')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '20px',
+                cursor: 'pointer',
+                padding: '0',
+                width: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0.8
+              }}
+              onMouseOver={(e) => e.target.style.opacity = '1'}
+              onMouseOut={(e) => e.target.style.opacity = '0.8'}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '24px' }}>
+          
+          {/* Alert */}
+          {isHighPriority && (
+            <div style={{
+              backgroundColor: '#FFF8E1',
+              border: '1px solid #FFB300',
+              borderLeft: '4px solid #FF8F00',
+              padding: '12px 16px',
+              marginBottom: '24px',
+              fontSize: '14px'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                color: '#E65100',
+                fontWeight: '600',
+                marginBottom: '4px'
+              }}>
+                ⚠ Configuration Required
+              </div>
+              <div style={{ color: '#BF360C', lineHeight: '1.4' }}>
+                Browser settings must be adjusted to enable secure login functionality.
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#212121',
+              margin: '0 0 16px 0'
+            }}>
+              Required Configuration Steps:
+            </h4>
+            
+            <ol style={{
+              margin: 0,
+              paddingLeft: '20px',
+              fontSize: '14px',
+              lineHeight: '1.6',
+              color: '#424242'
+            }}>
+              {instructions.steps.map((step, index) => (
+                <li key={index} style={{ 
+                  marginBottom: '8px',
+                  paddingLeft: '8px'
+                }}>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Security Notice */}
+          <div style={{
+            backgroundColor: '#F5F5F5',
+            border: '1px solid #e0e0e0',
+            padding: '16px',
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px'
+            }}>
+              <span style={{ 
+                fontSize: '16px',
+                color: '#005AA0',
+                marginTop: '2px'
+              }}>
+                🔒
+              </span>
+              <div>
+                <div style={{
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  color: '#212121',
+                  marginBottom: '4px'
+                }}>
+                  Security Information
+                </div>
+                <div style={{
+                  fontSize: '13px',
+                  color: '#616161',
+                  lineHeight: '1.4'
+                }}>
+                  This configuration allows secure authentication while maintaining your privacy. 
+                  These settings are standard requirements for enterprise login systems.
+                  <br /><br />
+                  <strong>Scope:</strong> These Safari configurations apply globally to all websites 
+                  and will improve your experience across modern web applications, including banking, 
+                  e-commerce, and enterprise systems.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'flex-end'
+          }}>
+            <button
+              onClick={() => handleDismiss('dont-show')}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: 'transparent',
+                color: '#757575',
+                border: '1px solid #e0e0e0',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#f5f5f5';
+                e.target.style.borderColor = '#d0d0d0';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.borderColor = '#e0e0e0';
+              }}
+            >
+              Don't show again
+            </button>
+            
+            <button
+              onClick={() => handleDismiss('understood')}
+              style={{
+                padding: '10px 24px',
+                backgroundColor: '#005AA0',
+                color: '#ffffff',
+                border: '1px solid #005AA0',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#004080';
+                e.target.style.borderColor = '#004080';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = '#005AA0';
+                e.target.style.borderColor = '#005AA0';
+              }}
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Export theme for use in other components
 export { AlphaShoutTheme };
 
@@ -74,18 +391,18 @@ class ApiService {
 
   // Auth APIs
   static async register(email, password) {
-    // 前端基礎驗證
+    // 前端基础验证
     if (!email || !password) {
       throw new Error('Email and password are required');
     }
     
-    // 郵箱格式驗證
+    // 邮箱格式验证
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       throw new Error('Please enter a valid email address');
     }
     
-    // 密碼強度驗證
+    // 密码强度验证
     if (password.length < 8) {
       throw new Error('Password must be at least 8 characters long');
     }
@@ -97,7 +414,7 @@ class ApiService {
   }
 
   static async login(email, password) {
-    // 前端基礎驗證
+    // 前端基础验证
     if (!email || !password) {
       throw new Error('Email and password are required');
     }
@@ -604,10 +921,10 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password) => {
     try {
-      // 調用 API 註冊
+      // 调用 API 注册
       const data = await ApiService.register(email, password);
       
-      // 只有在成功創建用戶後才更新狀態
+      // 只有在成功创建用户后才更新状态
       if (data.user && data.user.id) {
         setUser(data.user);
         sessionStorage.setItem('auth_user', JSON.stringify(data.user));
@@ -628,7 +945,7 @@ export const AuthProvider = ({ children }) => {
       
       return data;
     } catch (error) {
-      // 如果是重複註冊錯誤，拋出更友好的消息
+      // 如果是重复注册错误，抛出更友好的消息
       if (error.message && (
         error.message.includes('already registered') ||
         error.message.includes('already exists') ||
@@ -781,7 +1098,7 @@ const GoogleSignInButton = ({ onSuccess, onError, loading, setLoading }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    // 加載 Google Sign-In 腳本
+    // 加载 Google Sign-In 脚本
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -973,6 +1290,29 @@ const LoginBoxInternal = () => {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
+  // 🔥 新添加 - Apple设备帮助状态
+  const [showAppleHelp, setShowAppleHelp] = useState(false);
+
+  // 🔥 新添加 - 在 LoginBoxInternal 组件内部
+  const checkAppleLoginIssue = (error) => {
+    const userAgent = navigator.userAgent;
+    const isAppleDevice = /iPad|iPhone|iPod|Mac/.test(userAgent);
+    const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
+    
+    if (isAppleDevice && isSafari) {
+      if (error.message && (
+        error.message.includes('token') || 
+        error.message.includes('cookie') ||
+        error.message.includes('session') ||
+        error.message.includes('401')
+      )) {
+        setShowAppleHelp(true);
+        return true;
+      }
+    }
+    return false;
+  };
+
   const handleSubmit = async () => {
     if (!email || !password) {
       setMessage('Please fill in all fields');
@@ -980,11 +1320,12 @@ const LoginBoxInternal = () => {
       return;
     }
 
-    // 清理郵箱（去除空格，轉小寫）
+    // 清理邮箱（去除空格，转小写）
     const cleanEmail = email.trim().toLowerCase();
     
     setLoading(true);
     setMessage('');
+    setShowAppleHelp(false); // 清除之前的Apple帮助提示
 
     try {
       const data = isLogin 
@@ -999,23 +1340,29 @@ const LoginBoxInternal = () => {
         setPassword('');
       }
     } catch (error) {
-      // 處理重複註冊錯誤
-      if (!isLogin && error.message && (
-        error.message.includes('already registered') ||
-        error.message.includes('already exists')
-      )) {
-        setMessage('This email is already registered. Switching to login...');
+      // 🔥 新添加 - Apple设备特殊处理
+      if (checkAppleLoginIssue(error)) {
+        setMessage('Login may be affected by Safari privacy settings. Please check the configuration guide above.');
         setMessageType('warning');
-        
-        // 自動切換到登錄模式
-        setTimeout(() => {
-          setIsLogin(true);
-          setMessage('Please enter your password to sign in');
-          setMessageType('info');
-        }, 2000);
       } else {
-        setMessage(error.message || 'Operation failed');
-        setMessageType('error');
+        // 处理重复注册错误
+        if (!isLogin && error.message && (
+          error.message.includes('already registered') ||
+          error.message.includes('already exists')
+        )) {
+          setMessage('This email is already registered. Switching to login...');
+          setMessageType('warning');
+          
+          // 自动切换到登录模式
+          setTimeout(() => {
+            setIsLogin(true);
+            setMessage('Please enter your password to sign in');
+            setMessageType('info');
+          }, 2000);
+        } else {
+          setMessage(error.message || (isLogin ? 'Login failed' : 'Registration failed'));
+          setMessageType('error');
+        }
       }
     } finally {
       setLoading(false);
@@ -1037,7 +1384,7 @@ const LoginBoxInternal = () => {
       setMessage(data.message || 'If an account exists with this email, you will receive a password reset link shortly.');
       setMessageType('success');
       
-      // 3秒後返回登入頁面
+      // 3秒后返回登入页面
       setTimeout(() => {
         setIsForgotPassword(false);
         setMessage('');
@@ -1069,6 +1416,25 @@ const LoginBoxInternal = () => {
     window.dispatchEvent(event);
   };
 
+  const handleGoogleLogin = async (credential) => {
+    try {
+      const data = await loginWithGoogle(credential);
+      setMessage(data.message || 'Google Login Successful!');
+      setMessageType('success');
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      // 🔥 新添加 - Google登录的Apple设备特殊处理
+      if (checkAppleLoginIssue(error)) {
+        setMessage('Google login may be affected by Safari privacy settings. Please check the configuration guide above.');
+        setMessageType('warning');
+      } else {
+        setMessage(error.message || 'Google Login Failed!');
+        setMessageType('error');
+      }
+    }
+  };
+
   // Logged in state
   if (user) {
     return (
@@ -1078,6 +1444,9 @@ const LoginBoxInternal = () => {
         padding: '48px 16px',
         fontFamily: AlphaShoutTheme.fonts.primary
       }}>
+        {/* 🔥 新添加 - Apple设备配置指导 */}
+        <AppleDeviceGuide />
+        
         <div style={{
           maxWidth: '56rem',
           margin: '0 auto'
@@ -1247,6 +1616,9 @@ const LoginBoxInternal = () => {
         padding: '48px 16px',
         fontFamily: AlphaShoutTheme.fonts.primary
       }}>
+        {/* 🔥 新添加 - Apple设备配置指导 */}
+        <AppleDeviceGuide />
+        
         <div style={{
           maxWidth: '440px',
           width: '100%'
@@ -1399,6 +1771,9 @@ const LoginBoxInternal = () => {
       padding: '48px 16px',
       fontFamily: AlphaShoutTheme.fonts.primary
     }}>
+      {/* 🔥 新添加 - Apple设备配置指导 */}
+      <AppleDeviceGuide />
+      
       <div style={{
         maxWidth: '440px',
         width: '100%'
@@ -1447,6 +1822,75 @@ const LoginBoxInternal = () => {
           borderRadius: '8px',
           border: `1px solid ${AlphaShoutTheme.colors.borderLight}`
         }}>
+
+          {/* 🔥 新添加 - Apple设备帮助提示 */}
+          {showAppleHelp && (
+            <div style={{
+              backgroundColor: '#FFF3E0',
+              border: '1px solid #FFB74D',
+              borderLeft: '4px solid #FF8F00',
+              padding: '16px',
+              marginBottom: '20px',
+              fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  backgroundColor: '#FF8F00',
+                  color: '#ffffff',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  flexShrink: 0
+                }}>
+                  !
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    color: '#E65100',
+                    marginBottom: '8px'
+                  }}>
+                    Safari Browser Configuration Issue
+                  </div>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: '#BF360C', 
+                    lineHeight: '1.5',
+                    marginBottom: '12px'
+                  }}>
+                    Your browser's privacy settings may be preventing secure authentication. 
+                    Please review the configuration requirements above.
+                  </div>
+                  <button
+                    onClick={() => setShowAppleHelp(false)}
+                    style={{
+                      fontSize: '12px',
+                      padding: '6px 12px',
+                      backgroundColor: '#005AA0',
+                      color: '#ffffff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Acknowledge
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
               <label htmlFor="email" style={{
@@ -1695,6 +2139,7 @@ const LoginBoxInternal = () => {
                   setMessage('');
                   setEmail('');
                   setPassword('');
+                  setShowAppleHelp(false);
                 }}
                 style={{
                   fontWeight: '400',
@@ -1714,7 +2159,7 @@ const LoginBoxInternal = () => {
               </button>
             </div>
 
-            {/* 分隔線 */}
+            {/* 分隔线 */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1740,20 +2185,9 @@ const LoginBoxInternal = () => {
               }}></div>
             </div>
 
-            {/* Google 登錄按鈕 - DigitalOcean Style */}
+            {/* Google 登录按钮 - DigitalOcean Style */}
             <GoogleSignInButton
-              onSuccess={async (credential) => {
-                try {
-                  const data = await loginWithGoogle(credential);
-                  setMessage(data.message || 'Google Login Successful！');
-                  setMessageType('success');
-                  setEmail('');
-                  setPassword('');
-                } catch (error) {
-                  setMessage(error.message || 'Google Login Failed!');
-                  setMessageType('error');
-                }
-              }}
+              onSuccess={handleGoogleLogin}
               onError={(error) => {
                 setMessage(error.message || 'Google Login Failed!');
                 setMessageType('error');
