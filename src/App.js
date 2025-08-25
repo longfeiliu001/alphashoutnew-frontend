@@ -12,6 +12,7 @@ import { useSEO } from './hooks/useSEO';
 import Solana from './Solana';
 import Supabase from './Supabase';
 import Portfolioanalysis from './Portfolioanalysis';
+import { initGA, trackPageView, trackFeatureUsage } from './utils/analytics';
 
 import Portfoliocapm7 from './Portfoliocapm7';
 
@@ -290,6 +291,10 @@ function AppContent() {
  // 应用动态 SEO - 最新版本
  useSEO(getSEOProps());
 
+
+ useEffect(() => {
+  initGA();
+}, []);
  // Check URL for password reset route
  useEffect(() => {
    const checkPasswordResetRoute = () => {
