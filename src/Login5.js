@@ -1,5 +1,6 @@
 // Login5.js - Professional authentication system with AlphaShout branding (with password reset)
 import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // ==================== Configuration ====================
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -1633,10 +1634,11 @@ const LoginBoxInternal = () => {
     }
   };
 
-  const handleRecharge = () => {
-    const event = new CustomEvent('navigate-to-payment', { detail: { page: 'payment2' } });
-    window.dispatchEvent(event);
-  };
+const navigate = useNavigate(); // 在组件顶部添加这行
+
+const handleRecharge = () => {
+  navigate('/billing');
+};
 
   const handleGoogleLogin = async (credential) => {
   try {

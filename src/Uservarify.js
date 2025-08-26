@@ -163,6 +163,7 @@ const Usersmallbox = () => {
           window.dispatchEvent(new CustomEvent('navigate-to-login', { detail: { page: 'login' } }));
           
           // Method 2: Directly click the login menu item (backup)
+          /*
           setTimeout(() => {
             // The login menu is the 5th item (index 4) in the menu
             const loginMenuItem = document.querySelector('.ant-menu-item:nth-child(5)');
@@ -178,6 +179,7 @@ const Usersmallbox = () => {
               });
             }
           }, 100);
+          */
         }}
         style={{
           display: 'flex',

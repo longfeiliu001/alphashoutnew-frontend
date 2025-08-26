@@ -1,6 +1,6 @@
 // src/hooks/useSEO.js
-// 版本: 最新版 (基于你的真实 Lucide Clover SVG)
-// 更新日期: 2025-08-22
+// 版本: 最终修正版 (价格修正 + 路径优化)
+// 更新日期: 2025-08-26
 
 import { useEffect } from 'react';
 
@@ -64,7 +64,7 @@ export const useSEO = ({
     setMetaTag('og:url', url, true);
     setMetaTag('og:title', fullTitle, true);
     setMetaTag('og:description', description, true);
-    setMetaTag('og:image', image, true);
+    setMetaTag('og:image', `${url}${image}`, true);
     setMetaTag('og:image:width', '1200', true);
     setMetaTag('og:image:height', '630', true);
     setMetaTag('og:site_name', 'ALPHASHOUT', true);
@@ -75,36 +75,29 @@ export const useSEO = ({
     setMetaTag('twitter:url', url, true);
     setMetaTag('twitter:title', fullTitle, true);
     setMetaTag('twitter:description', description, true);
-    setMetaTag('twitter:image', image, true);
-    setMetaTag('twitter:creator', '@alphashout', true);
-    setMetaTag('twitter:site', '@alphashout', true);
+    setMetaTag('twitter:image', `${url}${image}`, true);
 
-    // 直接使用你提供的精确 Lucide Clover SVG
-    const createDirectLucideCloverFavicon = () => {
-      const exactLucideCloverSVG = `
+    // Lucide Clover SVG Favicon
+    const createLucideCloverFavicon = () => {
+      const svgContent = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
-  <!-- 深蓝色背景 -->
-  <rect width="24" height="24" fill="#334155" rx="2"/>
-  <!-- 你的精确 Lucide Clover SVG 路径 -->
+  <rect width="24" height="24" fill="#334155" rx="3"/>
   <g fill="none" stroke="#FF4500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M16.17 7.83 2 22"/>
     <path d="M4.02 12a2.827 2.827 0 1 1 3.81-4.17A2.827 2.827 0 1 1 12 4.02a2.827 2.827 0 1 1 4.17 3.81A2.827 2.827 0 1 1 19.98 12a2.827 2.827 0 1 1-3.81 4.17A2.827 2.827 0 1 1 12 19.98a2.827 2.827 0 1 1-4.17-3.81A1 1 0 1 1 4 12"/>
     <path d="m7.83 7.83 8.34 8.34"/>
   </g>
-</svg>`;
+</svg>`.trim();
       
-      const base64 = btoa(unescape(encodeURIComponent(exactLucideCloverSVG)));
+      const base64 = btoa(unescape(encodeURIComponent(svgContent)));
       return `data:image/svg+xml;base64,${base64}`;
     };
 
-    // 使用你的精确 Lucide Clover SVG 创建 favicon
-    const exactCloverFaviconURL = createDirectLucideCloverFavicon();
-
-    // Favicon links - 直接使用你的 Lucide Clover SVG
-    setLinkTag('icon', exactCloverFaviconURL, null, 'image/svg+xml');
+    // Favicon links
+    const cloverFaviconURL = createLucideCloverFavicon();
+    setLinkTag('icon', cloverFaviconURL, null, 'image/svg+xml');
     setLinkTag('icon', '/favicon.ico', null, 'image/x-icon');
-    setLinkTag('icon', '/logo192.png', '192x192', 'image/png');
-    setLinkTag('apple-touch-icon', '/logo192.png', '192x192');
+    setLinkTag('apple-touch-icon', '/logo192.png');
     setLinkTag('canonical', url);
 
     // 结构化数据
@@ -132,14 +125,14 @@ export const useSEO = ({
         "@type": "Offer",
         "priceCurrency": "USD",
         "price": "0.10",
-        "description": "Token-based pricing model - pay only for what you use"
+        "description": "Token-based pricing - pay only for what you use"
       },
       "featureList": [
         "Real-time Stock Analysis",
         "Portfolio Optimization with 8 Strategies",
         "Technical Chart Analysis AI", 
         "AI-Powered Financial Reports",
-        "Global Market Coverage",
+        "Historical Market Data Analysis",
         "Risk Management Tools",
         "CAPM Analysis",
         "Monte Carlo Simulation"
@@ -147,23 +140,18 @@ export const useSEO = ({
       "creator": {
         "@type": "Organization",
         "name": "ALPHASHOUT",
-        "url": url,
-        "sameAs": [
-          "https://twitter.com/alphashout",
-          "https://linkedin.com/company/alphashout"
-        ]
+        "url": url
       },
-      "screenshot": image,
-      "softwareVersion": "2.0",
-      "releaseNotes": "Enhanced AI analysis and new optimization strategies"
+      // 移除screenshot字段 - 不需要应用截图
+      "softwareVersion": "2.0"
     }, 'webapp');
 
-    // FinancialService 结构化数据
+    // FinancialService 结构化数据 (修正价格)
     addStructuredData({
       "@context": "https://schema.org",
       "@type": "FinancialService",
       "name": "ALPHASHOUT Investment Analytics",
-      "description": "Institutional-grade investment analytics and portfolio optimization tools democratized for individual investors",
+      "description": "Institutional-grade investment analytics and portfolio optimization tools",
       "url": url,
       "serviceType": "Investment Analysis",
       "areaServed": "Worldwide",
@@ -180,7 +168,7 @@ export const useSEO = ({
             "itemOffered": {
               "@type": "Service",
               "name": "Stock Analysis",
-              "description": "Real-time financial statement analysis with AI-powered insights and risk assessment"
+              "description": "Comprehensive financial statement analysis with AI insights"
             },
             "price": "0.30",
             "priceCurrency": "USD"
@@ -190,7 +178,7 @@ export const useSEO = ({
             "itemOffered": {
               "@type": "Service",
               "name": "Portfolio Optimization",
-              "description": "Multi-strategy portfolio optimization with global asset coverage and risk management"
+              "description": "Multi-strategy portfolio optimization with risk management"
             },
             "price": "0.50",
             "priceCurrency": "USD"
@@ -200,9 +188,19 @@ export const useSEO = ({
             "itemOffered": {
               "@type": "Service", 
               "name": "Technical Analysis",
-              "description": "AI-powered chart analysis with pattern recognition and technical indicators"
+              "description": "AI-powered chart analysis and pattern recognition"
             },
-            "price": "0.10",
+            "price": "0.20",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service", 
+              "name": "Historical Data Analysis",
+              "description": "Comprehensive historical market data with backtesting"
+            },
+            "price": "0.20",
             "priceCurrency": "USD"
           }
         ]
@@ -216,39 +214,27 @@ export const useSEO = ({
       ]
     }, 'financial');
 
-    // MobileApplication 结构化数据 (针对 .app 域名)
+    // Organization 结构化数据
     addStructuredData({
       "@context": "https://schema.org",
-      "@type": "MobileApplication",
+      "@type": "Organization",
       "name": "ALPHASHOUT",
-      "description": description,
       "url": url,
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web Browser, iOS, Android",
-      "browserRequirements": "Requires JavaScript. Requires HTML5.",
-      "permissions": "No special permissions required",
-      "memoryRequirements": "256MB",
-      "processorRequirements": "1GHz",
-      "storageRequirements": "10MB",
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "1250",
-        "bestRating": "5",
-        "worstRating": "1"
+      "logo": `${url}/logo512.png`,
+      "description": "Democratizing institutional-grade investment analytics",
+      "foundingDate": "2024",
+      "industry": "Financial Technology",
+      "numberOfEmployees": "1-10",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "SG"
       },
-      "offers": {
-        "@type": "Offer",
-        "price": "0.10",
-        "priceCurrency": "USD",
-        "category": "paid"
-      },
-      "screenshot": [
-        "/screenshots/dashboard.jpg",
-        "/screenshots/portfolio.jpg", 
-        "/screenshots/analysis.jpg"
-      ]
-    }, 'mobile-app');
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "availableLanguage": "English"
+      }
+    }, 'organization');
 
     // FAQ 结构化数据
     addStructuredData({
@@ -268,7 +254,7 @@ export const useSEO = ({
           "name": "How much does ALPHASHOUT cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "ALPHASHOUT uses a transparent token-based pricing model at $0.10 per token. No subscriptions or hidden fees - pay only for what you use."
+            "text": "ALPHASHOUT uses a transparent token-based pricing model at $0.10 per token. Stock analysis costs 3 tokens ($0.30), portfolio optimization costs 5 tokens ($0.50), and technical analysis costs 2 tokens ($0.20)."
           }
         },
         {
@@ -281,14 +267,45 @@ export const useSEO = ({
         },
         {
           "@type": "Question",
-          "name": "Is ALPHASHOUT suitable for beginners?",
+          "name": "Is my data secure on ALPHASHOUT?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes! While ALPHASHOUT provides institutional-grade analytics, it's designed to be accessible to individual investors of all experience levels with intuitive interfaces and clear explanations."
+            "text": "Yes, ALPHASHOUT implements bank-grade security measures including SSL encryption, secure authentication, and does not store sensitive personal financial information."
           }
         }
       ]
     }, 'faq');
+
+    // BreadcrumbList 结构化数据
+    const currentPath = window.location.pathname;
+    const breadcrumbItems = [];
+    
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": url
+    });
+
+    if (currentPath !== '/') {
+      const pathSegments = currentPath.split('/').filter(segment => segment);
+      const pageName = pathSegments[0]?.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ') || 'Page';
+      
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        "position": 2,
+        "name": pageName,
+        "item": `${url}${currentPath}`
+      });
+    }
+
+    addStructuredData({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": breadcrumbItems
+    }, 'breadcrumb');
 
   }, [title, description, keywords, image, url, type]);
 };
