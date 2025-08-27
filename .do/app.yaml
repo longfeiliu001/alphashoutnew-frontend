@@ -1,0 +1,43 @@
+name: lobster-app
+region: fra
+domains:
+- domain: alphashout.app
+  type: PRIMARY
+static_sites:
+- name: alphashoutnew-frontend
+  github:
+    repo: longfeiliu001/alphashoutnew-frontend
+    branch: master
+    deploy_on_push: true
+  build_command: npm run build
+  output_dir: build
+  catchall_document: index.html
+  environment_slug: node-js
+  envs:
+  - key: REACT_APP_API_URL
+    value: https://alphashoutnew-api-l4gz3.ondigitalocean.app
+    scope: BUILD_TIME
+  - key: REACT_APP_WS_URL
+    value: wss://alphashoutnew-api-l4gz3.ondigitalocean.app
+    scope: BUILD_TIME
+  - key: REACT_APP_SOLANA_NETWORK
+    value: https://mainnet.helius-rpc.com/?api-key=c6c4b24c-a6c1-4256-b8d9-ca243c61df90
+    scope: BUILD_TIME
+  - key: REACT_APP_GOOGLE_CLIENT_ID
+    value: 212702383577-6tcjcfeflb1fm4h11utupv555c9ssp4c.apps.googleusercontent.com
+    scope: BUILD_TIME
+  - key: REACT_APP_SUPABASE_URL
+    value: https://pyeiplmxftswzknpldgs.supabase.co
+    scope: BUILD_TIME
+  - key: REACT_APP_SUPABASE_ANON_KEY
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWlwbG14ZnRzd3prbnBsZGdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3ODU3NTQsImV4cCI6MjA2ODM2MTc1NH0.5ulg0h3ZQ-Rd5PMmxN1S4P0ulfZtAg2VjOjJxZpSvBQ
+    scope: BUILD_TIME
+  - key: REACT_APP_GA_MEASUREMENT_ID
+    value: G-5VG3EFDLVZ
+    scope: BUILD_TIME
+  - key: REACT_APP_ENABLE_ANALYTICS
+    value: "true"
+    scope: BUILD_TIME
+  - key: REACT_APP_VERSION
+    value: 1.0.0
+    scope: BUILD_TIME
