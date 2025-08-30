@@ -214,6 +214,7 @@ const Usersmallbox = () => {
   const displayName = user.email.split('@')[0];
   const firstLetter = displayName.charAt(0).toUpperCase();
   const availableQuota = quota?.available_quota ?? 0;
+  const isMobile = window.innerWidth <= 768;  // Add mobile detection
   
   // Dropdown menu
   const menu = (
@@ -287,8 +288,8 @@ const Usersmallbox = () => {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
-        padding: '6px 12px',
+        gap: isMobile ? '4px' : '10px',  // Mobile: 4px, Desktop: 10px
+        padding: isMobile ? '4px 8px' : '6px 12px',  // Mobile: compact padding
         background: 'rgba(255,255,255,0.1)',
         backdropFilter: 'blur(10px)',
         borderRadius: '20px',
@@ -307,33 +308,35 @@ const Usersmallbox = () => {
         e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
         e.currentTarget.style.boxShadow = 'none';
       }}>
-        <Avatar 
-          size={24} 
-          style={{ 
-            background: 'rgba(255,255,255,0.9)',
-            color: AlphaShoutTheme.colors.primary,
-            fontSize: '12px',
-            fontWeight: '700',
-            border: '1px solid rgba(255,255,255,0.3)'
-          }}
-        >
-          {firstLetter}
-        </Avatar>
+       <Avatar 
+  size={isMobile ? 20 : 24}
+  style={{ 
+    background: isMobile ? AlphaShoutTheme.colors.primary : 'rgba(255,255,255,0.9)',  // 移动端用深蓝背景
+    color: isMobile ? 'white' : AlphaShoutTheme.colors.primary,  // 移动端用白色字母
+    fontSize: isMobile ? '11px' : '12px',
+    fontWeight: '700',
+    border: isMobile ? '2px solid white' : '1px solid rgba(255,255,255,0.3)',  // 移动端更粗的边框
+  }}
+>
+  {firstLetter}
+</Avatar>
+     
         
-        <span style={{ 
-          fontSize: '13px',
-          fontWeight: '500',
-          color: 'white',
-          maxWidth: '100px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}>
-          {displayName}
-        </span>
+        {!isMobile && (  // Only show username on desktop
+          <span style={{ 
+            fontSize: '13px',
+            fontWeight: '500',
+            color: 'white',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}>
+            {displayName}
+          </span>
+        )}
         
         <div style={{
-          padding: '2px 8px',
+          padding: isMobile ? '2px 6px' : '2px 8px',  // Smaller padding on mobile
           background: availableQuota > 5 
             ? 'rgba(106, 191, 75, 0.2)' 
             : 'rgba(255, 184, 28, 0.2)',
