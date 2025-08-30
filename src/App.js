@@ -12,7 +12,7 @@ import { useSEO } from './hooks/useSEO';
 import AboutUsWrapper from './AboutUsWrapper';
 // Analytics
 import { initGA, trackPageView, trackFeatureUsage } from './utils/analytics';
-
+import LoginWrapper from './LoginWrapper';
 // Components
 import Portfoliocapm7 from './Portfoliocapm7';
 import PortfolioWrapper from './PortfolioWrapper';
@@ -501,12 +501,32 @@ function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [navigate]);
 
-  // Mobile bottom tabs
+  // Mobile bottom tabs - 使用专业金融术语版本
   const mobileBottomTabs = [
-    { key: 'stock', icon: <TrendingUp size={20} />, title: 'Analysis', route: ROUTES.STOCK_ANALYSIS },
-    { key: 'portfolio', icon: <PieChart size={20} />, title: 'Portfolio', route: ROUTES.PORTFOLIO_OPTIMIZATION },
-    { key: 'billing', icon: <DollarSign size={20} />, title: 'Billing', route: ROUTES.BILLING },
-    { key: 'profile', icon: <User size={20} />, title: 'Profile', route: ROUTES.PROFILE }
+    { 
+      key: 'financial', 
+      icon: <TrendingUp size={20} />, 
+      title: 'Financials', // 财务
+      route: ROUTES.STOCK_ANALYSIS 
+    },
+    { 
+      key: 'portfolio', 
+      icon: <PieChart size={20} />, 
+      title: 'Portfolio', // 组合
+      route: ROUTES.PORTFOLIO_OPTIMIZATION 
+    },
+    { 
+      key: 'chart', 
+      icon: <Image size={20} />, 
+      title: 'Technical', // 技术面
+      route: ROUTES.TECHNICAL_ANALYSIS 
+    },
+    { 
+      key: 'history', 
+      icon: <History size={20} />, 
+      title: 'Data', // 数据
+      route: ROUTES.HISTORICAL_DATA 
+    }
   ];
 
   return (
@@ -618,58 +638,58 @@ function AppContent() {
           </div>
         </Header>
       ) : (
-     // Mobile Header
-<div style={{
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  height: '50px',
-  background: 'white',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-  display: 'flex',
-  alignItems: 'center',
-  padding: '0 12px',
-  zIndex: 1000
-}}>
-  {/* 左侧：汉堡菜单 + Logo */}
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    flex: '1',
-    gap: '10px'
-  }}>
-    <MenuOutlined 
-      onClick={() => setMobileDrawerVisible(true)}
-      style={{ fontSize: '20px' }}
-    />
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px'
-    }}>
-      <Clover 
-        size={18} 
-        color="#FF4500"
-        style={{ filter: 'drop-shadow(0 0 4px rgba(255, 69, 0, 0.3))' }}
-      />
-      <span style={{ 
-        fontSize: '16px', 
-        fontWeight: 'bold',
-        color: '#003D6D'
-      }}>
-        ALPHASHOUT
-      </span>
-    </div>
-  </div>
-  
-  {/* 右侧：用户信息 */}
-  <div style={{ 
-    flex: '0 0 auto'
-  }}>
-    <Uservarify />
-  </div>
-</div>
+        // Mobile Header
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '50px',
+          background: 'white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 12px',
+          zIndex: 1000
+        }}>
+          {/* 左侧：汉堡菜单 + Logo */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            flex: '1',
+            gap: '10px'
+          }}>
+            <MenuOutlined 
+              onClick={() => setMobileDrawerVisible(true)}
+              style={{ fontSize: '20px' }}
+            />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <Clover 
+                size={18} 
+                color="#FF4500"
+                style={{ filter: 'drop-shadow(0 0 4px rgba(255, 69, 0, 0.3))' }}
+              />
+              <span style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold',
+                color: '#003D6D'
+              }}>
+                ALPHASHOUT
+              </span>
+            </div>
+          </div>
+          
+          {/* 右侧：用户信息 */}
+          <div style={{ 
+            flex: '0 0 auto'
+          }}>
+            <Uservarify />
+          </div>
+        </div>
       )}
 
       {/* Scroll progress bar */}
@@ -755,8 +775,9 @@ function AppContent() {
               <Route path={ROUTES.HISTORICAL_DATA} element={<HistoricalDataWrapper  />} />
               
               <Route path={ROUTES.BILLING} element={<PaymentWrapper />} />
-              <Route path={ROUTES.PROFILE} element={<Login5 />} />
-              <Route path={ROUTES.LOGIN} element={<Login5 />} />
+           
+              <Route path={ROUTES.LOGIN} element={<LoginWrapper />} />
+              <Route path={ROUTES.PROFILE} element={<LoginWrapper />} />
               <Route path={ROUTES.ABOUT} element={<AboutUsWrapper  />} />
               <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
               <Route path="*" element={<StockthirteenWrapper />} />
@@ -765,27 +786,31 @@ function AppContent() {
         </div>
       </Content>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation - 专业金融术语版本 */}
       {isMobile && (
         <div style={{
           position: 'fixed',
           bottom: 0,
           left: 0,
           right: 0,
-          height: '56px',
+          height: '60px', // 稍微增加高度
           background: 'white',
           borderTop: '1px solid #e8e8e8',
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)' // 添加阴影效果
         }}>
           {mobileBottomTabs.map(tab => {
             const isActive = location.pathname === tab.route;
             return (
               <div
                 key={tab.key}
-                onClick={() => navigate(tab.route)}
+                onClick={() => {
+                  navigate(tab.route);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -794,123 +819,147 @@ function AppContent() {
                   justifyContent: 'center',
                   height: '100%',
                   cursor: 'pointer',
-                  transition: 'all 0.3s'
+                  transition: 'all 0.3s',
+                  position: 'relative'
                 }}
               >
-                <div style={{
-                  color: isActive ? '#003D6D' : '#999',
-                  marginBottom: '2px',
-                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                  transition: 'all 0.3s'
-                }}>
-                  {tab.icon}
-                </div>
-                <span style={{
-                  fontSize: '10px',
-                  color: isActive ? '#003D6D' : '#999',
-                  fontWeight: isActive ? 'bold' : 'normal'
-                }}>
-                  {tab.title}
-                </span>
+                {/* 活跃状态的顶部指示条 */}
                 {isActive && (
                   <div style={{
                     position: 'absolute',
                     top: 0,
-                    width: '40px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '50px',
                     height: '3px',
-                    background: '#003D6D',
-                    borderRadius: '0 0 3px 3px'
+                    background: 'linear-gradient(90deg, #003D6D, #005A9C)',
+                    borderRadius: '0 0 3px 3px',
+                    boxShadow: '0 2px 4px rgba(0,61,109,0.3)'
                   }} />
                 )}
+                
+                {/* 图标容器 */}
+                <div style={{
+                  color: isActive ? '#003D6D' : '#999',
+                  marginBottom: '4px',
+                  transform: isActive ? 'scale(1.15)' : 'scale(1)',
+                  transition: 'all 0.3s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: isActive ? '8px' : '0',
+                  background: isActive ? 'rgba(0,61,109,0.08)' : 'transparent'
+                }}>
+                  {tab.icon}
+                </div>
+                
+                {/* 标题文字 - 专业金融术语 */}
+                <span style={{
+                  fontSize: '11px', // 增大字体，因为文字更短了
+                  color: isActive ? '#003D6D' : '#999',
+                  fontWeight: isActive ? '700' : '500', // 加粗以增强可读性
+                  textAlign: 'center',
+                  lineHeight: '1.2',
+                  maxWidth: '100%',
+                  paddingHorizontal: '2px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  letterSpacing: isActive ? '0.5px' : '0px' // 活跃状态增加字间距
+                }}>
+                  {tab.title}
+                </span>
               </div>
             );
           })}
         </div>
       )}
 
-     {/* Mobile Drawer Menu */}
-{isMobile && (
-  <Drawer
-    title="Menu"
-    placement="left"
-    width="80%"
-    onClose={() => setMobileDrawerVisible(false)}
-    open={mobileDrawerVisible}
-    bodyStyle={{ padding: 0 }}
-  >
-    <div style={{ padding: '20px' }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        marginBottom: '30px',
-        paddingBottom: '20px',
-        borderBottom: '1px solid #e8e8e8'
-      }}>
-        <Clover size={24} color="#FF4500" />
-        <span style={{
-          marginLeft: '10px',
-          fontSize: '20px',
-          fontWeight: 'bold',
-          color: '#003D6D'
-        }}>
-          ALPHASHOUT
-        </span>
-      </div>
-      
-      {menuItems.map((item) => {
-        // Safely extract label text
-        let labelText = '';
-        if (React.isValidElement(item.label)) {
-          // Check if it's a Badge component with children
-          const badgeProps = item.label.props;
-          if (badgeProps && badgeProps.children) {
-            // Check if children is a span element
-            if (React.isValidElement(badgeProps.children)) {
-              labelText = badgeProps.children.props.children;
-            } else {
-              labelText = badgeProps.children;
-            }
-          }
-        } else {
-          labelText = item.label;
-        }
-          
-        return (
-          <div
-            key={item.key}
-            onClick={() => {
-              handleMenuSelect({ selectedKeys: [item.key.toString()] });
-              setMobileDrawerVisible(false);
-            }}
-            style={{
+      {/* Mobile Drawer Menu */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          width="80%"
+          onClose={() => setMobileDrawerVisible(false)}
+          open={mobileDrawerVisible}
+          bodyStyle={{ padding: 0 }}
+        >
+          <div style={{ padding: '20px' }}>
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              padding: '15px 10px',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              cursor: 'pointer',
-              background: selectedKeys.includes(item.key.toString()) ? '#f0f8ff' : 'transparent'
-            }}
-          >
-            <div style={{ 
-              color: selectedKeys.includes(item.key.toString()) ? '#003D6D' : '#666',
-              marginRight: '15px'
+              marginBottom: '30px',
+              paddingBottom: '20px',
+              borderBottom: '1px solid #e8e8e8'
             }}>
-              {item.icon}
+              <Clover size={24} color="#FF4500" />
+              <span style={{
+                marginLeft: '10px',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#003D6D'
+              }}>
+                ALPHASHOUT
+              </span>
             </div>
-            <span style={{
-              fontSize: '16px',
-              color: selectedKeys.includes(item.key.toString()) ? '#003D6D' : '#333',
-              fontWeight: selectedKeys.includes(item.key.toString()) ? 'bold' : 'normal'
-            }}>
-              {labelText}
-            </span>
+            
+            {menuItems.map((item) => {
+              // Safely extract label text
+              let labelText = '';
+              if (React.isValidElement(item.label)) {
+                // Check if it's a Badge component with children
+                const badgeProps = item.label.props;
+                if (badgeProps && badgeProps.children) {
+                  // Check if children is a span element
+                  if (React.isValidElement(badgeProps.children)) {
+                    labelText = badgeProps.children.props.children;
+                  } else {
+                    labelText = badgeProps.children;
+                  }
+                }
+              } else {
+                labelText = item.label;
+              }
+                
+              return (
+                <div
+                  key={item.key}
+                  onClick={() => {
+                    handleMenuSelect({ selectedKeys: [item.key.toString()] });
+                    setMobileDrawerVisible(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '15px 10px',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    cursor: 'pointer',
+                    background: selectedKeys.includes(item.key.toString()) ? '#f0f8ff' : 'transparent'
+                  }}
+                >
+                  <div style={{ 
+                    color: selectedKeys.includes(item.key.toString()) ? '#003D6D' : '#666',
+                    marginRight: '15px'
+                  }}>
+                    {item.icon}
+                  </div>
+                  <span style={{
+                    fontSize: '16px',
+                    color: selectedKeys.includes(item.key.toString()) ? '#003D6D' : '#333',
+                    fontWeight: selectedKeys.includes(item.key.toString()) ? 'bold' : 'normal'
+                  }}>
+                    {labelText}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
-    </div>
-  </Drawer>
-)}
+        </Drawer>
+      )}
 
       {/* Footer - Desktop only */}
       {!isMobile && (

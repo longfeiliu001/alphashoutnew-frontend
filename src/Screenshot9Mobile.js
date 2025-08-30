@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Card, Typography, message, Input, Tabs, Upload, Tag, Spin } from 'antd';
+import { Button, Card, Typography, message, Input, Tabs, Upload, Tag, Spin, Modal } from 'antd';
 import {
   CameraOutlined,
   UploadOutlined,
@@ -11,7 +11,9 @@ import {
   CloseOutlined,
   LoginOutlined,
   ReloadOutlined,
-  RobotOutlined
+  RobotOutlined,
+  PictureOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -258,6 +260,9 @@ const Screenshot9Mobile = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [showAnalysisResult, setShowAnalysisResult] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [stream, setStream] = useState(null);
   
   // Stock Search States
   const [searchQuery, setSearchQuery] = useState('');
@@ -276,8 +281,100 @@ const Screenshot9Mobile = () => {
   
   const fileInputRef = useRef(null);
   const searchTimeoutRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
-  // Check authentication
+  // Camera functions
+  const startCamera = async () => {
+    setCameraError(null);
+    setShowCamera(true);
+    
+    try {
+      // Check if we're in HTTPS context
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        setCameraError('Camera requires HTTPS connection');
+        return;
+      }
+
+      // Request camera permission with proper constraints
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment', // Use back camera
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      
+      setStream(mediaStream);
+      
+      // Set video source after a small delay to ensure ref is ready
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Camera error:', error);
+      
+      // Provide specific error messages
+      if (error.name === 'NotAllowedError') {
+        setCameraError('Camera permission denied. Please allow camera access and try again.');
+      } else if (error.name === 'NotFoundError') {
+        setCameraError('No camera found on this device.');
+      } else if (error.name === 'NotReadableError') {
+        setCameraError('Camera is being used by another app.');
+      } else if (error.name === 'OverconstrainedError') {
+        setCameraError('Camera settings not supported.');
+      } else {
+        setCameraError('Unable to access camera. Please check your settings.');
+      }
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+    setCameraError(null);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      // Set canvas dimensions to video dimensions
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw video frame to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert to base64
+      const imageData = canvas.toDataURL('image/png');
+      setUploadedImage(imageData);
+      setAnalysisResult(null);
+      setShowAnalysisResult(false);
+      
+      // Stop camera
+      stopCamera();
+      
+      showMobileMessage('success', 'Photo captured successfully!');
+    }
+  };
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
   useEffect(() => {
     checkAuthentication();
     fetchUserQuota();
@@ -588,32 +685,175 @@ const Screenshot9Mobile = () => {
           }
           key="1"
         >
-          {/* Upload Section */}
-          <Upload.Dragger
-            name="file"
-            accept="image/*"
-            showUploadList={false}
-            customRequest={({ file, onSuccess }) => {
-              setTimeout(() => onSuccess("ok"), 0);
-            }}
-            onChange={handleImageUpload}
-            style={{
-              background: AlphaShoutTheme.colors.surfaceSecondary,
-              border: `2px dashed ${AlphaShoutTheme.colors.border}`,
-              borderRadius: AlphaShoutTheme.radius.large,
-              marginBottom: '16px'
-            }}
-          >
-            <p style={{ fontSize: '28px', margin: '16px 0' }}>
-              {uploadedImage ? <CheckCircleOutlined style={{ color: AlphaShoutTheme.colors.success }} /> : <CameraOutlined />}
-            </p>
-            <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
-              {uploadedImage ? 'Image uploaded' : 'Tap to upload chart'}
-            </p>
-            <p style={{ fontSize: '12px', color: AlphaShoutTheme.colors.textLight }}>
-              Take photo or choose from gallery
-            </p>
-          </Upload.Dragger>
+          {/* Upload Section - Choice between Camera and Gallery */}
+          {!showCamera ? (
+            <>
+              {/* Two upload options */}
+              <div style={{ 
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                marginBottom: '16px'
+              }}>
+                {/* Camera Button */}
+                <Button
+                  size="large"
+                  onClick={startCamera}
+                  style={{
+                    height: '80px',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: AlphaShoutTheme.colors.surfaceSecondary,
+                    border: `1px solid ${AlphaShoutTheme.colors.border}`,
+                    borderRadius: AlphaShoutTheme.radius.large,
+                    padding: '0'
+                  }}
+                >
+                  <CameraOutlined style={{ fontSize: '24px', marginBottom: '4px' }} />
+                  <span style={{ fontSize: '13px' }}>Take Photo</span>
+                </Button>
+
+                {/* Gallery Button */}
+                <Upload
+                  accept="image/*"
+                  showUploadList={false}
+                  customRequest={({ file, onSuccess }) => {
+                    setTimeout(() => onSuccess("ok"), 0);
+                  }}
+                  onChange={handleImageUpload}
+                  style={{ width: '100%' }}
+                >
+                  <Button
+                    size="large"
+                    style={{
+                      height: '80px',
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: AlphaShoutTheme.colors.surfaceSecondary,
+                      border: `1px solid ${AlphaShoutTheme.colors.border}`,
+                      borderRadius: AlphaShoutTheme.radius.large,
+                      padding: '0'
+                    }}
+                  >
+                    <PictureOutlined style={{ fontSize: '24px', marginBottom: '4px' }} />
+                    <span style={{ fontSize: '13px' }}>Choose Image</span>
+                  </Button>
+                </Upload>
+              </div>
+
+              {/* Instruction text */}
+              {!uploadedImage && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '12px',
+                  background: AlphaShoutTheme.colors.surfaceLight,
+                  borderRadius: AlphaShoutTheme.radius.medium,
+                  marginBottom: '16px'
+                }}>
+                  <Text style={{ fontSize: '13px', color: AlphaShoutTheme.colors.textSecondary }}>
+                    Supports: Stock charts • K-line • Technical indicators • Trading view
+                  </Text>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Camera View */
+            <Card
+              size="small"
+              title={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px' }}>Camera</span>
+                  <Button
+                    type="text"
+                    icon={<CloseOutlined />}
+                    size="small"
+                    onClick={stopCamera}
+                  />
+                </div>
+              }
+              style={{ marginBottom: '16px' }}
+            >
+              {cameraError ? (
+                <div style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  background: '#FFF3E0',
+                  borderRadius: AlphaShoutTheme.radius.medium
+                }}>
+                  <ExclamationCircleOutlined 
+                    style={{ 
+                      fontSize: '32px', 
+                      color: AlphaShoutTheme.colors.warning,
+                      marginBottom: '12px'
+                    }} 
+                  />
+                  <div style={{ 
+                    fontSize: '14px', 
+                    color: AlphaShoutTheme.colors.textPrimary,
+                    marginBottom: '12px'
+                  }}>
+                    {cameraError}
+                  </div>
+                  {cameraError.includes('permission') && (
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: AlphaShoutTheme.colors.textSecondary,
+                      marginTop: '8px'
+                    }}>
+                      <strong>How to enable camera:</strong><br/>
+                      iOS: Settings → Safari → Camera<br/>
+                      Android: Settings → Apps → Browser → Permissions
+                    </div>
+                  )}
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      stopCamera();
+                      startCamera();
+                    }}
+                    style={{ marginTop: '12px' }}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{
+                      width: '100%',
+                      borderRadius: AlphaShoutTheme.radius.medium,
+                      marginBottom: '12px'
+                    }}
+                  />
+                  <Button
+                    type="primary"
+                    size="large"
+                    block
+                    icon={<CameraOutlined />}
+                    onClick={capturePhoto}
+                    style={{
+                      background: AlphaShoutTheme.colors.primary,
+                      height: '44px'
+                    }}
+                  >
+                    Capture
+                  </Button>
+                </>
+              )}
+              {/* Hidden canvas for capturing */}
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+            </Card>
+          )}
 
           {/* Uploaded Image Preview */}
           {uploadedImage && !showAnalysisResult && (
