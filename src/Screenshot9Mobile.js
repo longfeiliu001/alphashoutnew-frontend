@@ -301,7 +301,8 @@ const Screenshot9Mobile = () => {
         video: {
           facingMode: 'environment', // Use back camera
           width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          height: { ideal: 1080 },
+           aspectRatio: { ideal: 16/9 } // 新增：强制16:9宽屏
         }
       });
       
@@ -824,17 +825,31 @@ const Screenshot9Mobile = () => {
                 </div>
               ) : (
                 <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    style={{
-                      width: '100%',
-                      borderRadius: AlphaShoutTheme.radius.medium,
-                      marginBottom: '12px'
-                    }}
-                  />
+                  <div style={{
+  position: 'relative',
+  width: '100%',
+  paddingBottom: '56.25%', // 16:9 宽屏比例
+  marginBottom: '12px',
+  borderRadius: AlphaShoutTheme.radius.medium,
+  overflow: 'hidden',
+  background: '#000'
+}}>
+  <video
+    ref={videoRef}
+    autoPlay
+    playsInline
+    muted
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: AlphaShoutTheme.radius.medium
+    }}
+  />
+</div>
                   <Button
                     type="primary"
                     size="large"

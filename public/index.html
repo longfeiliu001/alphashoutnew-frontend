@@ -37,6 +37,78 @@
   <link rel="dns-prefetch" href="//alphashout.app">
   
   <title>ALPHASHOUT - Institutional-Grade Investment Analytics</title>
+
+  <!-- iPhone/Safari 兼容性自动修复 -->
+  <script>
+    // 1. 自动加载必要的Polyfills
+    (function() {
+      try {
+        eval('const test = {}?.prop ?? "default"');
+      } catch (e) {
+        document.write('<script src="https://polyfill.io/v3/polyfill.min.js?features=es2015,es2016,es2017,es2018,es2019,es2020,es2021"><\/script>');
+      }
+    })();
+    
+    // 2. 自动修复bundle.js中的新语法
+    (function() {
+      var originalAppendChild = document.head.appendChild;
+      var originalBodyAppendChild = document.body ? document.body.appendChild : null;
+      
+      function interceptScript(original, parent) {
+        return function(element) {
+          if (element && element.tagName === 'SCRIPT' && element.src && 
+              (element.src.includes('bundle.js') || element.src.includes('main.') || element.src.includes('static/js/'))) {
+            
+            fetch(element.src)
+              .then(function(response) { 
+                return response.text(); 
+              })
+              .then(function(code) {
+                var fixedCode = code
+                  .replace(/(\w+)\?\./g, function(match, p1) {
+                    return '(' + p1 + ' && ' + p1 + '.';
+                  })
+                  .replace(/\]\?\./g, '] && temp.')
+                  .replace(/\)\?\./g, ') && temp.')
+                  .replace(/(\w+)\s*\?\?\s*/g, function(match, p1) {
+                    return '(' + p1 + ' !== null && ' + p1 + ' !== undefined ? ' + p1 + ' : ';
+                  });
+                
+                var newScript = document.createElement('script');
+                newScript.textContent = fixedCode;
+                
+                if (parent === document.head) {
+                  document.head.appendChild(newScript);
+                } else {
+                  document.body.appendChild(newScript);
+                }
+              })
+              .catch(function(error) {
+                if (original) {
+                  original.call(parent, element);
+                }
+              });
+            
+            return element;
+          }
+          
+          return original ? original.call(parent, element) : element;
+        };
+      }
+      
+      document.head.appendChild = interceptScript(originalAppendChild, document.head);
+      
+      if (document.body) {
+        document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
+      } else {
+        document.addEventListener('DOMContentLoaded', function() {
+          originalBodyAppendChild = document.body.appendChild;
+          document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
+        });
+      }
+    })();
+  </script>
+  
 </head>
 <body>
   <noscript>
