@@ -2,77 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-
-  <!-- Critical: iOS Safari Regex Fix - MUST BE FIRST -->
-  <script>
-    // iOS Safari regex compatibility fix
-    (function() {
-      var testRegex = function() {
-        try {
-          new Function('return /(?<test>\\w+)/')();
-          return true;
-        } catch (e) {
-          return false;
-        }
-      };
-      
-      if (!testRegex()) {
-        console.log('Applying iOS Safari regex fix...');
-        
-        var OriginalRegExp = RegExp;
-        window.RegExp = function(pattern, flags) {
-          if (typeof pattern === 'string') {
-            // Simple replacement for incompatible syntax
-            pattern = pattern
-              .replace(/\(\?<[^>]+>/g, '(')  // Named groups
-              .replace(/\\k<[^>]+>/g, '\\1')  // Named references  
-              .replace(/\(\?<=/g, '')         // Positive lookbehind
-              .replace(/\(\?<!/g, '');        // Negative lookbehind
-          }
-          
-          try {
-            return new OriginalRegExp(pattern, flags);
-          } catch (e) {
-            console.warn('Regex still failed, using fallback:', pattern);
-            return new OriginalRegExp('.+', flags);
-          }
-        };
-        
-        RegExp.prototype = OriginalRegExp.prototype;
-        Object.setPrototypeOf(RegExp, OriginalRegExp);
-        
-        // Fix String.prototype methods
-        ['match', 'replace', 'search', 'split'].forEach(function(method) {
-          var original = String.prototype[method];
-          String.prototype[method] = function(pattern) {
-            if (typeof pattern === 'string' && pattern.includes('(?<')) {
-              pattern = pattern.replace(/\(\?<[^>]+>/g, '(');
-            }
-            return original.apply(this, arguments);
-          };
-        });
-      }
-    })();
-  </script>
-
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
   
-  <!-- Basic favicon links -->
+  <!-- Favicon and PWA -->
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-  
-  <!-- PWA manifest -->
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-  
-  <!-- Windows tile config -->
   <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
   
-  <!-- Basic meta tags -->
+  <!-- SEO Meta Tags -->
   <meta name="description" content="Institutional-grade investment analytics for everyone. AI-powered stock analysis, portfolio optimization, and technical analysis tools." />
   <meta name="keywords" content="investment analytics, stock analysis, portfolio optimization, financial analysis, AI trading tools" />
   <meta name="theme-color" content="#003d7a" />
+  <meta name="author" content="ALPHASHOUT">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://alphashout.app" />
   
-  <!-- iOS specific optimizations -->
+  <!-- iOS Specific -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -81,310 +27,110 @@
   <meta name="msapplication-TileColor" content="#003d7a">
   <meta name="format-detection" content="telephone=no">
   
-  <!-- SEO optimization -->
-  <meta name="author" content="ALPHASHOUT">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://alphashout.app" />
-  
-  <!-- Preload critical resources -->
+  <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="dns-prefetch" href="//alphashout.app">
-  <link rel="dns-prefetch" href="//polyfill.io">
   
   <title>ALPHASHOUT - Institutional-Grade Investment Analytics</title>
 
-  <!-- Load all necessary Polyfills (iOS Safari compatibility) -->
-  <script crossorigin="anonymous" src="https://polyfill.io/v3/polyfill.min.js?features=es2015,es2016,es2017,es2018,es2019,es2020,es2021,Promise,Promise.prototype.finally,Object.assign,Object.entries,Object.values,Object.fromEntries,Array.prototype.includes,Array.prototype.flat,Array.prototype.flatMap,String.prototype.includes,String.prototype.startsWith,String.prototype.endsWith,String.prototype.padStart,String.prototype.padEnd,String.prototype.trimStart,String.prototype.trimEnd,Array.from,Array.of,Array.prototype.find,Array.prototype.findIndex,globalThis,queueMicrotask"></script>
-  
-  <!-- iOS Safari core compatibility fixes -->
+  <!-- 简单的错误监控（用于调试） -->
   <script>
-    // Core compatibility fixes
     (function() {
       'use strict';
       
-      // 1. Ensure console object is complete
-      if (!window.console) {
-        window.console = {};
-      }
-      var methods = ['log', 'debug', 'info', 'warn', 'error', 'trace', 'group', 'groupEnd', 'time', 'timeEnd'];
-      for (var i = 0; i < methods.length; i++) {
-        if (!console[methods[i]]) {
-          console[methods[i]] = function() {};
+      // 错误收集器
+      var errors = [];
+      var errorDiv = null;
+      
+      // 显示错误的函数
+      function showError(error) {
+        if (!errorDiv) {
+          errorDiv = document.createElement('div');
+          errorDiv.id = 'error-display';
+          errorDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(255,0,0,0.9);color:white;padding:10px;z-index:99999;font-size:11px;max-height:30vh;overflow:auto;';
+          errorDiv.innerHTML = '<div style="font-weight:bold;margin-bottom:5px;">调试信息</div>';
+          document.body.appendChild(errorDiv);
+          
+          // 添加关闭按钮
+          var closeBtn = document.createElement('button');
+          closeBtn.textContent = '关闭';
+          closeBtn.style.cssText = 'position:absolute;top:5px;right:5px;background:white;color:black;border:none;padding:5px 10px;border-radius:3px;font-size:11px;';
+          closeBtn.onclick = function() {
+            errorDiv.style.display = 'none';
+          };
+          errorDiv.appendChild(closeBtn);
         }
-      }
-      
-      // 2. Fix requestAnimationFrame (iOS old versions)
-      var vendors = ['webkit', 'moz', 'ms', 'o'];
-      for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
-        window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || 
-                                     window[vendors[x] + 'CancelRequestAnimationFrame'];
-      }
-      
-      if (!window.requestAnimationFrame) {
-        var lastTime = 0;
-        window.requestAnimationFrame = function(callback) {
-          var currTime = new Date().getTime();
-          var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-          var id = window.setTimeout(function() { 
-            callback(currTime + timeToCall); 
-          }, timeToCall);
-          lastTime = currTime + timeToCall;
-          return id;
-        };
-      }
-      
-      if (!window.cancelAnimationFrame) {
-        window.cancelAnimationFrame = function(id) {
-          clearTimeout(id);
-        };
-      }
-      
-      // 3. Fix Object.assign (if polyfill didn't load)
-      if (typeof Object.assign !== 'function') {
-        Object.defineProperty(Object, 'assign', {
-          value: function assign(target) {
-            if (target === null || target === undefined) {
-              throw new TypeError('Cannot convert undefined or null to object');
-            }
-            var to = Object(target);
-            for (var index = 1; index < arguments.length; index++) {
-              var nextSource = arguments[index];
-              if (nextSource !== null && nextSource !== undefined) {
-                for (var nextKey in nextSource) {
-                  if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-                    to[nextKey] = nextSource[nextKey];
-                  }
-                }
-              }
-            }
-            return to;
-          },
-          writable: true,
-          configurable: true
-        });
-      }
-      
-      // 4. Fix Promise (basic implementation if needed)
-      if (typeof Promise === 'undefined') {
-        window.Promise = function(executor) {
-          var self = this;
-          self.status = 'pending';
-          self.value = undefined;
-          self.reason = undefined;
-          self.onFulfilledCallbacks = [];
-          self.onRejectedCallbacks = [];
-          
-          function resolve(value) {
-            if (self.status === 'pending') {
-              self.status = 'fulfilled';
-              self.value = value;
-              self.onFulfilledCallbacks.forEach(function(callback) {
-                callback(value);
-              });
-            }
-          }
-          
-          function reject(reason) {
-            if (self.status === 'pending') {
-              self.status = 'rejected';
-              self.reason = reason;
-              self.onRejectedCallbacks.forEach(function(callback) {
-                callback(reason);
-              });
-            }
-          }
-          
-          try {
-            executor(resolve, reject);
-          } catch (e) {
-            reject(e);
-          }
-        };
         
-        window.Promise.prototype.then = function(onFulfilled, onRejected) {
-          var self = this;
-          return new Promise(function(resolve, reject) {
-            if (self.status === 'fulfilled') {
-              if (typeof onFulfilled === 'function') {
-                try {
-                  var result = onFulfilled(self.value);
-                  resolve(result);
-                } catch (e) {
-                  reject(e);
-                }
-              } else {
-                resolve(self.value);
-              }
-            } else if (self.status === 'rejected') {
-              if (typeof onRejected === 'function') {
-                try {
-                  var result = onRejected(self.reason);
-                  resolve(result);
-                } catch (e) {
-                  reject(e);
-                }
-              } else {
-                reject(self.reason);
-              }
-            } else {
-              self.onFulfilledCallbacks.push(function() {
-                if (typeof onFulfilled === 'function') {
-                  try {
-                    var result = onFulfilled(self.value);
-                    resolve(result);
-                  } catch (e) {
-                    reject(e);
-                  }
-                } else {
-                  resolve(self.value);
-                }
-              });
-              self.onRejectedCallbacks.push(function() {
-                if (typeof onRejected === 'function') {
-                  try {
-                    var result = onRejected(self.reason);
-                    resolve(result);
-                  } catch (e) {
-                    reject(e);
-                  }
-                } else {
-                  reject(self.reason);
-                }
-              });
-            }
-          });
-        };
-        
-        window.Promise.prototype.catch = function(onRejected) {
-          return this.then(null, onRejected);
-        };
+        var errorInfo = document.createElement('div');
+        errorInfo.style.cssText = 'margin-top:5px;padding:5px;background:rgba(0,0,0,0.2);border-radius:3px;';
+        errorInfo.innerHTML = error;
+        errorDiv.appendChild(errorInfo);
+        errorDiv.style.display = 'block';
       }
       
-      // 5. Fix globalThis
-      if (typeof globalThis === 'undefined') {
-        (function() {
-          if (typeof self !== 'undefined') {
-            self.globalThis = self;
-          } else if (typeof window !== 'undefined') {
-            window.globalThis = window;
-          } else if (typeof global !== 'undefined') {
-            global.globalThis = global;
-          } else {
-            this.globalThis = this;
-          }
-        })();
-      }
-      
-    })();
-    
-    // React/JavaScript syntax fixes
-    (function() {
-      var originalAppendChild = document.head.appendChild;
-      var originalBodyAppendChild = null;
-      
-      function transformCode(code) {
-        try {
-          // Fix optional chaining operator (?.)
-          code = code.replace(/(\w+)\?\./g, function(match, p1) {
-            return '(' + p1 + ' != null ? ' + p1 + '.';
-          });
-          
-          // Fix nullish coalescing operator (??)
-          code = code.replace(/(\w+)\s*\?\?\s*/g, function(match, p1) {
-            return '(' + p1 + ' !== null && ' + p1 + ' !== undefined ? ' + p1 + ' : ';
-          });
-          
-          return code;
-        } catch (e) {
-          console.error('Code transformation error:', e);
-          return code;
-        }
-      }
-      
-      function interceptScript(original, parent) {
-        return function(element) {
-          if (element && element.tagName === 'SCRIPT' && element.src && 
-              (element.src.includes('bundle.js') || 
-               element.src.includes('main.') || 
-               element.src.includes('static/js/') ||
-               element.src.includes('chunk'))) {
-            
-            // For scripts that need transformation
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', element.src, false); // Synchronous request
-            try {
-              xhr.send();
-              if (xhr.status === 200) {
-                var transformedCode = transformCode(xhr.responseText);
-                var newScript = document.createElement('script');
-                newScript.textContent = transformedCode;
-                return original.call(parent, newScript);
-              }
-            } catch (e) {
-              console.error('Script loading error:', e);
-            }
-          }
-          
-          return original ? original.call(parent, element) : element;
-        };
-      }
-      
-      // Intercept head scripts
-      document.head.appendChild = interceptScript(originalAppendChild, document.head);
-      
-      // Intercept body scripts
-      if (document.body) {
-        originalBodyAppendChild = document.body.appendChild;
-        document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
-      } else {
-        document.addEventListener('DOMContentLoaded', function() {
-          if (document.body) {
-            originalBodyAppendChild = document.body.appendChild;
-            document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
-          }
-        });
-      }
-    })();
-    
-    // Error catching and debugging
-    (function() {
-      var errorCount = 0;
-      var maxErrors = 10;
-      
+      // 监听错误
       window.addEventListener('error', function(e) {
-        errorCount++;
-        console.error('Global error #' + errorCount + ':', e.message, 'at', e.filename + ':' + e.lineno + ':' + e.colno);
-        
-        // Show errors in development environment
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          if (errorCount <= maxErrors) {
-            var errorDiv = document.getElementById('error-display');
-            if (!errorDiv) {
-              errorDiv = document.createElement('div');
-              errorDiv.id = 'error-display';
-              errorDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#ff0000;color:white;padding:10px;z-index:99999;font-size:12px;max-height:200px;overflow-y:auto;';
-              document.body.appendChild(errorDiv);
-            }
-            errorDiv.innerHTML += '<div>Error ' + errorCount + ': ' + e.message + ' (' + e.filename + ':' + e.lineno + ')</div>';
-          }
+        if (e.message && (e.message.includes('regular expression') || e.message.includes('Invalid'))) {
+          var errorText = '正则错误: ' + e.message + '<br>';
+          errorText += '文件: ' + (e.filename ? e.filename.split('/').pop() : 'unknown') + '<br>';
+          errorText += '位置: 行' + e.lineno + ', 列' + e.colno;
+          
+          errors.push({
+            message: e.message,
+            file: e.filename,
+            line: e.lineno,
+            time: new Date().toLocaleTimeString()
+          });
+          
+          showError(errorText);
         }
-        
-        // Prevent error propagation
-        e.preventDefault();
-        return true;
       });
       
-      window.addEventListener('unhandledrejection', function(e) {
-        console.error('Unhandled promise rejection:', e.reason);
-        e.preventDefault();
-        return true;
+      // 测试环境
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          try {
+            // 测试正则支持
+            new RegExp('(?<test>x)');
+            console.log('✓ 环境支持命名捕获组');
+            
+            // 显示 iOS 版本
+            var ua = navigator.userAgent;
+            var iosMatch = ua.match(/OS (\d+)[_.](\d+)/);
+            if (iosMatch) {
+              console.log('iOS 版本: ' + iosMatch[1] + '.' + iosMatch[2]);
+            }
+          } catch(e) {
+            console.warn('环境不支持命名捕获组:', e.message);
+            showError('警告: 检测到正则兼容性问题<br>iOS版本可能过低');
+          }
+          
+          // 如果没有错误，显示成功信息
+          if (errors.length === 0) {
+            console.log('✓ 应用加载成功，无错误');
+          }
+        }, 1000);
       });
+      
+      // 提供全局调试函数
+      window.showDebugInfo = function() {
+        var info = '调试信息:\n';
+        info += 'User Agent: ' + navigator.userAgent + '\n';
+        info += 'URL: ' + window.location.href + '\n';
+        info += '错误数: ' + errors.length + '\n';
+        if (errors.length > 0) {
+          info += '\n错误列表:\n';
+          errors.forEach(function(err, i) {
+            info += (i+1) + '. ' + err.message + ' (' + err.time + ')\n';
+          });
+        }
+        alert(info);
+      };
     })();
   </script>
   
+  <!-- 样式 -->
   <style>
-    /* iOS Safari optimization styles */
     * {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
@@ -417,7 +163,6 @@
       min-height: 100%;
     }
     
-    /* Loading indicator */
     #loading-indicator {
       position: fixed;
       top: 0;
@@ -452,213 +197,7 @@
       font-size: 16px;
       font-weight: 500;
     }
-    
-    /* Prevent iOS rubber band effect */
-    .ios-scroll-fix {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
-    }
   </style>
-
-  <!-- Simplified error monitoring system -->
-  <script>
-    // Simplified error monitoring system
-    (function() {
-      var errors = [];
-      var maxErrors = 20;
-      var autoHideTimer = null;
-      
-      // Create simple error display
-      function showErrors() {
-        var div = document.getElementById('simple-error-display');
-        if (!div) {
-          div = document.createElement('div');
-          div.id = 'simple-error-display';
-          div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.95);color:white;padding:10px;z-index:999999;max-height:50vh;overflow-y:auto;font-size:11px;font-family:monospace;display:none;';
-          document.body.appendChild(div);
-        }
-        
-        // Clear auto-hide timer
-        if (autoHideTimer) {
-          clearTimeout(autoHideTimer);
-          autoHideTimer = null;
-        }
-        
-        if (errors.length === 0) {
-          div.innerHTML = 'No errors detected - App loaded successfully';
-          div.style.background = 'rgba(76,175,80,0.95)';
-          div.style.display = 'block';
-          
-          // Auto-hide success message after 5 seconds
-          autoHideTimer = setTimeout(function() {
-            div.style.display = 'none';
-          }, 5000);
-        } else {
-          div.style.background = 'rgba(255,0,0,0.95)';
-          div.style.display = 'block';
-          
-          var errorHtml = '<div style="font-weight:bold;margin-bottom:10px;">Errors (' + errors.length + '):</div>';
-          
-          for (var i = 0; i < errors.length; i++) {
-            var err = errors[i];
-            errorHtml += '<div style="margin-bottom:8px;padding:5px;background:rgba(0,0,0,0.2);border-radius:3px;">' +
-              '<div style="color:#ffeb3b;">#' + (i+1) + ' [' + err.time + ']</div>' +
-              '<div style="font-weight:bold;margin:3px 0;">' + escapeHtml(err.message) + '</div>' +
-              (err.source ? '<div style="font-size:9px;opacity:0.8;">' + escapeHtml(err.source) + '</div>' : '') +
-              '</div>';
-          }
-          
-          div.innerHTML = errorHtml;
-        }
-        
-        // Add close and copy buttons
-        div.innerHTML += '<div style="position:absolute;top:5px;right:5px;">' +
-          '<button onclick="copyErrors()" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;margin-right:5px;font-size:11px;">Copy</button>' +
-          '<button onclick="document.getElementById(\'simple-error-display\').style.display=\'none\'" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;font-size:11px;">Close</button>' +
-          '</div>';
-      }
-      
-      // HTML escape function
-      function escapeHtml(text) {
-        var map = {
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#039;'
-        };
-        return (text || '').replace(/[&<>"']/g, function(m) { return map[m]; });
-      }
-      
-      // Copy errors to clipboard
-      window.copyErrors = function() {
-        var text = 'ALPHASHOUT Error Log\n' + 
-                   'Time: ' + new Date().toString() + '\n' +
-                   'URL: ' + window.location.href + '\n' +
-                   'UserAgent: ' + navigator.userAgent + '\n\n' +
-                   'Errors:\n' + 
-                   errors.map(function(err, i) {
-                     return '#' + (i+1) + ' [' + err.time + ']\n' + 
-                            'Message: ' + err.message + '\n' + 
-                            'Source: ' + (err.source || 'N/A') + '\n';
-                   }).join('\n');
-        
-        // Try modern API
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function() {
-            alert('Errors copied to clipboard!');
-          }).catch(function() {
-            fallbackCopy(text);
-          });
-        } else {
-          fallbackCopy(text);
-        }
-      };
-      
-      // Fallback copy method
-      function fallbackCopy(text) {
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-          document.execCommand('copy');
-          alert('Errors copied to clipboard!');
-        } catch (err) {
-          alert('Copy failed. Please select and copy manually.');
-        }
-        document.body.removeChild(textarea);
-      }
-      
-      // Capture JavaScript errors
-      window.addEventListener('error', function(e) {
-        // Ignore some unimportant errors
-        if (e.message && e.message.indexOf('ResizeObserver') > -1) return;
-        
-        errors.push({
-          message: e.message || 'Unknown error',
-          source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : '',
-          time: new Date().toLocaleTimeString()
-        });
-        
-        if (errors.length > maxErrors) errors.shift();
-        
-        // Delay display to avoid temporary errors during page load
-        setTimeout(showErrors, 100);
-      });
-      
-      // Capture Promise errors
-      window.addEventListener('unhandledrejection', function(e) {
-        var message = 'Promise rejected: ';
-        if (e.reason) {
-          if (typeof e.reason === 'string') {
-            message += e.reason;
-          } else if (e.reason.message) {
-            message += e.reason.message;
-          } else {
-            message += JSON.stringify(e.reason);
-          }
-        } else {
-          message += 'Unknown reason';
-        }
-        
-        errors.push({
-          message: message,
-          source: 'Promise',
-          time: new Date().toLocaleTimeString()
-        });
-        
-        if (errors.length > maxErrors) errors.shift();
-        setTimeout(showErrors, 100);
-      });
-      
-      // Provide global functions
-      window.showErrorMonitor = showErrors;
-      window.clearErrors = function() {
-        errors = [];
-        var div = document.getElementById('simple-error-display');
-        if (div) div.style.display = 'none';
-      };
-      
-      // Check after page load
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          // Check if React app loaded
-          var root = document.getElementById('root');
-          if (root && root.children.length > 0) {
-            console.log('ALPHASHOUT loaded successfully');
-            
-            // Show success message if no errors
-            if (errors.length === 0) {
-              showErrors();
-            }
-          } else {
-            // App not loaded
-            errors.push({
-              message: 'React app failed to mount',
-              source: 'Application initialization',
-              time: new Date().toLocaleTimeString()
-            });
-            showErrors();
-          }
-        }, 3000);
-      });
-      
-      // Record early errors
-      if (window.__EARLY_ERRORS__ && window.__EARLY_ERRORS__.length > 0) {
-        window.__EARLY_ERRORS__.forEach(function(err) {
-          errors.push(err);
-        });
-      }
-    })();
-  </script>
 </head>
 <body>
   <!-- Loading indicator -->
@@ -684,12 +223,12 @@
   
   <div id="root"></div>
   
-  <!-- App loading monitor and error recovery -->
+  <!-- App loading monitor -->
   <script>
     (function() {
       var checkInterval;
       var checkCount = 0;
-      var maxChecks = 100; // 10 second timeout (100 * 100ms)
+      var maxChecks = 100; // 10 seconds timeout
       
       function hideLoadingIndicator() {
         var indicator = document.getElementById('loading-indicator');
@@ -708,15 +247,13 @@
         checkCount++;
         var root = document.getElementById('root');
         
-        // Check if app loaded
         if (root && root.children.length > 0) {
           clearInterval(checkInterval);
           hideLoadingIndicator();
-          console.log('App loaded successfully');
+          console.log('✓ App loaded successfully');
           return;
         }
         
-        // Timeout handling
         if (checkCount >= maxChecks) {
           clearInterval(checkInterval);
           console.error('App loading timeout');
@@ -727,27 +264,18 @@
               '<div style="text-align: center; padding: 20px;">' +
               '<h2 style="color: #003D6D;">Loading Error</h2>' +
               '<p>The application is taking longer than expected to load.</p>' +
-              '<p>Please try:</p>' +
-              '<ul style="text-align: left; display: inline-block;">' +
-              '<li>Refreshing the page</li>' +
-              '<li>Clearing Safari cache (Settings > Safari > Clear History and Website Data)</li>' +
-              '<li>Checking your internet connection</li>' +
-              '</ul>' +
               '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #003D6D; color: white; border: none; border-radius: 5px;">Refresh Page</button>' +
               '</div>';
           }
         }
       }
       
-      // Start checking
       checkInterval = setInterval(checkAppLoaded, 100);
       
-      // Also listen for DOMContentLoaded
       document.addEventListener('DOMContentLoaded', function() {
         setTimeout(checkAppLoaded, 100);
       });
       
-      // Listen for load event
       window.addEventListener('load', function() {
         setTimeout(checkAppLoaded, 100);
       });
