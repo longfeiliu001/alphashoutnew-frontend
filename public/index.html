@@ -32,102 +32,6 @@
   <link rel="dns-prefetch" href="//alphashout.app">
   
   <title>ALPHASHOUT - Institutional-Grade Investment Analytics</title>
-
-  <!-- 简单的错误监控（用于调试） -->
-  <script>
-    (function() {
-      'use strict';
-      
-      // 错误收集器
-      var errors = [];
-      var errorDiv = null;
-      
-      // 显示错误的函数
-      function showError(error) {
-        if (!errorDiv) {
-          errorDiv = document.createElement('div');
-          errorDiv.id = 'error-display';
-          errorDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(255,0,0,0.9);color:white;padding:10px;z-index:99999;font-size:11px;max-height:30vh;overflow:auto;';
-          errorDiv.innerHTML = '<div style="font-weight:bold;margin-bottom:5px;">调试信息</div>';
-          document.body.appendChild(errorDiv);
-          
-          // 添加关闭按钮
-          var closeBtn = document.createElement('button');
-          closeBtn.textContent = '关闭';
-          closeBtn.style.cssText = 'position:absolute;top:5px;right:5px;background:white;color:black;border:none;padding:5px 10px;border-radius:3px;font-size:11px;';
-          closeBtn.onclick = function() {
-            errorDiv.style.display = 'none';
-          };
-          errorDiv.appendChild(closeBtn);
-        }
-        
-        var errorInfo = document.createElement('div');
-        errorInfo.style.cssText = 'margin-top:5px;padding:5px;background:rgba(0,0,0,0.2);border-radius:3px;';
-        errorInfo.innerHTML = error;
-        errorDiv.appendChild(errorInfo);
-        errorDiv.style.display = 'block';
-      }
-      
-      // 监听错误
-      window.addEventListener('error', function(e) {
-        if (e.message && (e.message.includes('regular expression') || e.message.includes('Invalid'))) {
-          var errorText = '正则错误: ' + e.message + '<br>';
-          errorText += '文件: ' + (e.filename ? e.filename.split('/').pop() : 'unknown') + '<br>';
-          errorText += '位置: 行' + e.lineno + ', 列' + e.colno;
-          
-          errors.push({
-            message: e.message,
-            file: e.filename,
-            line: e.lineno,
-            time: new Date().toLocaleTimeString()
-          });
-          
-          showError(errorText);
-        }
-      });
-      
-      // 测试环境
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          try {
-            // 测试正则支持
-            new RegExp('(?<test>x)');
-            console.log('✓ 环境支持命名捕获组');
-            
-            // 显示 iOS 版本
-            var ua = navigator.userAgent;
-            var iosMatch = ua.match(/OS (\d+)[_.](\d+)/);
-            if (iosMatch) {
-              console.log('iOS 版本: ' + iosMatch[1] + '.' + iosMatch[2]);
-            }
-          } catch(e) {
-            console.warn('环境不支持命名捕获组:', e.message);
-            showError('警告: 检测到正则兼容性问题<br>iOS版本可能过低');
-          }
-          
-          // 如果没有错误，显示成功信息
-          if (errors.length === 0) {
-            console.log('✓ 应用加载成功，无错误');
-          }
-        }, 1000);
-      });
-      
-      // 提供全局调试函数
-      window.showDebugInfo = function() {
-        var info = '调试信息:\n';
-        info += 'User Agent: ' + navigator.userAgent + '\n';
-        info += 'URL: ' + window.location.href + '\n';
-        info += '错误数: ' + errors.length + '\n';
-        if (errors.length > 0) {
-          info += '\n错误列表:\n';
-          errors.forEach(function(err, i) {
-            info += (i+1) + '. ' + err.message + ' (' + err.time + ')\n';
-          });
-        }
-        alert(info);
-      };
-    })();
-  </script>
   
   <!-- 样式 -->
   <style>
@@ -211,74 +115,58 @@
     <div style="text-align: center; padding: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100000;">
       <h2 style="color: #003D6D;">ALPHASHOUT</h2>
       <p>JavaScript is required to run this application.</p>
-      <p>Please enable JavaScript in Safari:</p>
-      <ol style="text-align: left; display: inline-block;">
-        <li>Open Settings</li>
-        <li>Scroll to Safari</li>
-        <li>Tap Advanced</li>
-        <li>Enable JavaScript</li>
-      </ol>
+      <p>Please enable JavaScript in your browser settings.</p>
     </div>
   </noscript>
   
   <div id="root"></div>
   
-  <!-- App loading monitor -->
+  <!-- Simplified loading script -->
   <script>
     (function() {
-      var checkInterval;
-      var checkCount = 0;
-      var maxChecks = 100; // 10 seconds timeout
+      // Simple check for app loaded
+      var maxWait = 15000; // 15 seconds max wait
+      var startTime = Date.now();
       
-      function hideLoadingIndicator() {
+      function hideLoading() {
         var indicator = document.getElementById('loading-indicator');
         if (indicator) {
           indicator.style.transition = 'opacity 0.3s';
           indicator.style.opacity = '0';
           setTimeout(function() {
-            if (indicator.parentNode) {
+            if (indicator && indicator.parentNode) {
               indicator.parentNode.removeChild(indicator);
             }
           }, 300);
         }
       }
       
-      function checkAppLoaded() {
-        checkCount++;
+      function checkApp() {
         var root = document.getElementById('root');
         
         if (root && root.children.length > 0) {
-          clearInterval(checkInterval);
-          hideLoadingIndicator();
-          console.log('✓ App loaded successfully');
+          hideLoading();
           return;
         }
         
-        if (checkCount >= maxChecks) {
-          clearInterval(checkInterval);
-          console.error('App loading timeout');
-          
+        if (Date.now() - startTime < maxWait) {
+          setTimeout(checkApp, 100);
+        } else {
+          // Timeout - show reload option
           var indicator = document.getElementById('loading-indicator');
           if (indicator) {
             indicator.innerHTML = 
               '<div style="text-align: center; padding: 20px;">' +
               '<h2 style="color: #003D6D;">Loading Error</h2>' +
-              '<p>The application is taking longer than expected to load.</p>' +
-              '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #003D6D; color: white; border: none; border-radius: 5px;">Refresh Page</button>' +
+              '<p>Please refresh the page to try again.</p>' +
+              '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #003D6D; color: white; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>' +
               '</div>';
           }
         }
       }
       
-      checkInterval = setInterval(checkAppLoaded, 100);
-      
-      document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(checkAppLoaded, 100);
-      });
-      
-      window.addEventListener('load', function() {
-        setTimeout(checkAppLoaded, 100);
-      });
+      // Start checking after a short delay
+      setTimeout(checkApp, 100);
     })();
   </script>
 </body>
