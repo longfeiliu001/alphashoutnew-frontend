@@ -1,8 +1,7 @@
-// MobileLogin.js - Professional Mobile Login Component
+// MobileLogin.js - Professional Mobile Login Component (FIXED)
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './Login3';
-import { ApiService } from './Login5';
+import { useAuth, ApiService } from './Login5';
 
 // Mobile-optimized theme
 const MobileTheme = {
@@ -29,73 +28,118 @@ const MobileTheme = {
   }
 };
 
-// Mobile Google Sign-In Button
+// Mobile Google Sign-In Button Component
 const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(true);
   const googleButtonRef = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const initGoogle = async () => {
+      if (!isMounted) return;
       setIsGoogleLoading(true);
       
+      // Load Google script if not already loaded
       if (!window.google) {
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
         document.head.appendChild(script);
         
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
           script.onload = resolve;
-          setTimeout(resolve, 5000);
+          script.onerror = reject;
+          setTimeout(() => resolve(), 5000);
+        }).catch((err) => {
+          console.error('Failed to load Google script:', err);
         });
       }
 
       // Wait for Google to be ready
       let attempts = 0;
       while (!window.google?.accounts?.id && attempts < 20) {
+        if (!isMounted) return;
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
 
-      if (window.google?.accounts?.id && googleButtonRef.current) {
+      if (window.google?.accounts?.id && googleButtonRef.current && isMounted) {
         try {
-          window.google.accounts.id.initialize({
-            client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-            callback: async (response) => {
+          // Define the credential response handler
+          const handleCredentialResponse = async (response) => {
+            if (!response || !response.credential) {
+              if (typeof onError === 'function') {
+                onError(new Error('No credential received from Google'));
+              }
+              return;
+            }
+
+            if (typeof setLoading === 'function') {
               setLoading(true);
-              try {
+            }
+            
+            try {
+              if (typeof onSuccess === 'function') {
                 await onSuccess(response.credential);
-              } catch (error) {
+              }
+            } catch (error) {
+              if (typeof onError === 'function') {
                 onError(error);
-              } finally {
+              }
+            } finally {
+              if (typeof setLoading === 'function') {
                 setLoading(false);
               }
-            },
+            }
+          };
+
+          window.google.accounts.id.initialize({
+            client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+            callback: handleCredentialResponse,
             auto_select: false,
             cancel_on_tap_outside: true,
           });
 
-          googleButtonRef.current.innerHTML = '';
-          window.google.accounts.id.renderButton(googleButtonRef.current, {
-            theme: "outline",
-            size: "large",
-            text: "signin_with",
-            shape: "rectangular",
-            width: "100%",
-          });
+          if (googleButtonRef.current) {
+            googleButtonRef.current.innerHTML = '';
+            window.google.accounts.id.renderButton(googleButtonRef.current, {
+              theme: "outline",
+              size: "large",
+              text: "signin_with",
+              shape: "rectangular",
+              width: "100%",
+            });
+          }
           
-          setIsGoogleLoading(false);
+          if (isMounted) setIsGoogleLoading(false);
         } catch (error) {
           console.error('Google button render failed:', error);
-          setIsGoogleLoading(false);
+          if (isMounted) setIsGoogleLoading(false);
         }
       } else {
-        setIsGoogleLoading(false);
+        if (isMounted) setIsGoogleLoading(false);
       }
     };
 
     initGoogle();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [onSuccess, onError, setLoading]);
+
+  // Fallback button handler
+  const handleFallbackClick = () => {
+    const params = new URLSearchParams({
+      client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+      redirect_uri: window.location.origin,
+      response_type: 'code',
+      scope: 'openid email profile',
+      state: Math.random().toString(36).substring(7)
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  };
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
@@ -125,15 +169,58 @@ const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
           display: isGoogleLoading ? 'none' : 'block'
         }} 
       />
+      
+      {/* Fallback button if Google fails to load */}
+      {!isGoogleLoading && !googleButtonRef.current?.firstChild && (
+        <button
+          onClick={handleFallbackClick}
+          style={{
+            width: '100%',
+            padding: '14px',
+            border: '1px solid #dadce0',
+            borderRadius: '8px',
+            fontSize: '16px',
+            backgroundColor: '#fff',
+            color: '#3c4043',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+            <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Sign in with Google
+        </button>
+      )}
     </div>
   );
 };
 
 // Main Mobile Login Component
 const MobileLogin = () => {
-  const { user, quota, login, loginWithGoogle, register, logout } = useAuth();
   const navigate = useNavigate();
   
+  // Get all auth functions from context
+  const { 
+    user, 
+    quota, 
+    login, 
+    loginWithGoogle, 
+    register, 
+    logout, 
+    refreshQuota 
+  } = useAuth();
+  
+  // All state declarations together
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,6 +229,49 @@ const MobileLogin = () => {
   const [messageType, setMessageType] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isLoggedOut, setIsLoggedOut] = useState(false); // Track if we've been logged out
+
+  // Listen for logout event from Uservarify
+  useEffect(() => {
+    const handleUserLogout = () => {
+      console.log('MobileLogin: Received logout event');
+      
+      // Mark that we've been logged out
+      setIsLoggedOut(true);
+      
+      // Clear any cached message
+      setMessage('');
+      setMessageType('');
+      
+      // Reset form
+      setEmail('');
+      setPassword('');
+      setIsLogin(true);
+      setShowPassword(false);
+      setIsForgotPassword(false);
+    };
+    
+    // Also listen for login events to clear the logged out state
+    const handleUserLogin = () => {
+      console.log('MobileLogin: Received login event');
+      setIsLoggedOut(false);
+    };
+    
+    window.addEventListener('user-logout', handleUserLogout);
+    window.addEventListener('user-login', handleUserLogin);
+    
+    return () => {
+      window.removeEventListener('user-logout', handleUserLogout);
+      window.removeEventListener('user-login', handleUserLogin);
+    };
+  }, []);
+
+  // Reset isLoggedOut when user changes (e.g., after a new login)
+  useEffect(() => {
+    if (user && user.id && user.email) {
+      setIsLoggedOut(false);
+    }
+  }, [user]);
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -155,6 +285,7 @@ const MobileLogin = () => {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+      
       const data = isLogin 
         ? await login(cleanEmail, password)
         : await register(cleanEmail, password);
@@ -162,11 +293,12 @@ const MobileLogin = () => {
       setMessage(data.message || (isLogin ? 'Welcome back!' : 'Account created successfully!'));
       setMessageType('success');
       
-      // Clear form on success
+      // Clear the logged out state on successful login
+      setIsLoggedOut(false);
+      
       setEmail('');
       setPassword('');
       
-      // Navigate to home after successful login
       setTimeout(() => {
         navigate('/');
       }, 1500);
@@ -193,10 +325,14 @@ const MobileLogin = () => {
       setMessage('Google login successful!');
       setMessageType('success');
       
+      // Clear the logged out state on successful login
+      setIsLoggedOut(false);
+      
       setTimeout(() => {
         navigate('/');
       }, 1500);
     } catch (error) {
+      console.error('Google login error:', error);
       setMessage(error.message || 'Google login failed');
       setMessageType('error');
     }
@@ -229,20 +365,37 @@ const MobileLogin = () => {
 
   const handleLogout = async () => {
     setLoading(true);
+    setMessage('');
+    
     try {
+      // Mark as logged out immediately
+      setIsLoggedOut(true);
+      
+      // Reset ALL form states
+      setEmail('');
+      setPassword('');
+      setIsLogin(true);
+      setShowPassword(false);
+      setIsForgotPassword(false);
+      
+      // Call logout to clear backend session
       await logout();
-      setMessage('Logged out successfully');
-      setMessageType('success');
+      
     } catch (error) {
-      setMessage('Logout failed');
-      setMessageType('error');
+      console.error('Logout error:', error);
+      // Still mark as logged out even if API fails
+      setIsLoggedOut(true);
     } finally {
       setLoading(false);
     }
   };
 
+  // Check if user is logged in
+  // IMPORTANT: Check isLoggedOut flag FIRST to ensure we show login form after logout
+  const isUserLoggedIn = !isLoggedOut && user && user.id && user.email;
+
   // Logged in state - Mobile optimized
-  if (user) {
+  if (isUserLoggedIn) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -293,14 +446,14 @@ const MobileLogin = () => {
               fontSize: '20px',
               fontWeight: '600'
             }}>
-              {user.email[0].toUpperCase()}
+              {user.email ? user.email[0].toUpperCase() : 'U'}
             </div>
             <div style={{ marginLeft: '16px', flex: 1 }}>
               <div style={{ fontSize: '16px', fontWeight: '600', color: MobileTheme.colors.textPrimary }}>
-                {user.email}
+                {user.email || 'User'}
               </div>
               <div style={{ fontSize: '13px', color: MobileTheme.colors.textSecondary }}>
-                ID: {user.id}
+                ID: {user.id || 'N/A'}
               </div>
             </div>
           </div>
@@ -328,10 +481,11 @@ const MobileLogin = () => {
             
             <button
               onClick={() => navigate('/billing')}
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px',
-                backgroundColor: MobileTheme.colors.success,
+                backgroundColor: loading ? MobileTheme.colors.textTertiary : MobileTheme.colors.success,
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -340,7 +494,9 @@ const MobileLogin = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                opacity: loading ? 0.5 : 1,
+                cursor: loading ? 'not-allowed' : 'pointer'
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -365,21 +521,37 @@ const MobileLogin = () => {
               borderRadius: '8px',
               fontSize: '16px',
               fontWeight: '500',
-              opacity: loading ? 0.5 : 1
+              opacity: loading ? 0.5 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s'
             }}
           >
-            {loading ? 'Logging out...' : 'Sign Out'}
+            {loading ? 'Signing out...' : 'Sign Out'}
           </button>
         </div>
 
+        {/* Message Display */}
         {message && (
           <div style={{
             margin: '16px',
             padding: '12px',
             borderRadius: '8px',
-            backgroundColor: messageType === 'success' ? '#E6F4EA' : '#FCE8E6',
-            color: messageType === 'success' ? MobileTheme.colors.success : MobileTheme.colors.error
+            backgroundColor: 
+              messageType === 'success' ? '#E6F4EA' : 
+              messageType === 'warning' ? '#FFF3E0' : '#FCE8E6',
+            color: 
+              messageType === 'success' ? MobileTheme.colors.success : 
+              messageType === 'warning' ? MobileTheme.colors.warning : MobileTheme.colors.error,
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
+            {messageType === 'success' && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            )}
             {message}
           </div>
         )}
@@ -676,7 +848,8 @@ const MobileLogin = () => {
                 border: 'none',
                 color: MobileTheme.colors.primary,
                 fontSize: '14px',
-                padding: 0
+                padding: 0,
+                cursor: 'pointer'
               }}
             >
               Forgot password?
@@ -715,7 +888,8 @@ const MobileLogin = () => {
             fontSize: '16px',
             fontWeight: '600',
             marginBottom: '20px',
-            opacity: loading || !email || !password ? 0.5 : 1
+            opacity: loading || !email || !password ? 0.5 : 1,
+            cursor: loading || !email || !password ? 'not-allowed' : 'pointer'
           }}
         >
           {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}

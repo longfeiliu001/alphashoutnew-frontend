@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Login5 from './Login5'; // Original desktop login
 import MobileLogin from './MobileLogin'; // New mobile login
+import { AuthProvider } from './Login5'; // Import AuthProvider
 
 // Device detection utility
 const DeviceDetector = {
@@ -75,7 +76,7 @@ const LoadingTransition = () => (
   </div>
 );
 
-// Main Wrapper Component
+// Main Wrapper Component - Now properly wrapped with AuthProvider
 const LoginWrapper = () => {
   const [deviceType, setDeviceType] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,37 +140,30 @@ const LoginWrapper = () => {
     return <LoadingTransition />;
   }
 
-  // Render appropriate component based on device type
-  if (deviceType === 'mobile') {
-    return (
-      <div className="login-wrapper mobile-wrapper">
-        <MobileLogin />
-      </div>
-    );
-  }
-
-  if (deviceType === 'tablet') {
-    // For tablets, we can use mobile version in portrait and desktop in landscape
-    if (orientation === 'portrait') {
-      return (
-        <div className="login-wrapper tablet-wrapper portrait">
+  // Wrap everything with AuthProvider to ensure context is available
+  // NOTE: If your App.js already wraps with AuthProvider, remove this wrapper
+  return (
+    <AuthProvider>
+      {deviceType === 'mobile' ? (
+        <div className="login-wrapper mobile-wrapper">
           <MobileLogin />
         </div>
-      );
-    } else {
-      return (
-        <div className="login-wrapper tablet-wrapper landscape">
+      ) : deviceType === 'tablet' ? (
+        orientation === 'portrait' ? (
+          <div className="login-wrapper tablet-wrapper portrait">
+            <MobileLogin />
+          </div>
+        ) : (
+          <div className="login-wrapper tablet-wrapper landscape">
+            <Login5 />
+          </div>
+        )
+      ) : (
+        <div className="login-wrapper desktop-wrapper">
           <Login5 />
         </div>
-      );
-    }
-  }
-
-  // Desktop version
-  return (
-    <div className="login-wrapper desktop-wrapper">
-      <Login5 />
-    </div>
+      )}
+    </AuthProvider>
   );
 };
 

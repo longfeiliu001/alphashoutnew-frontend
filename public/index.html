@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   
-  <!-- 基本 favicon 链接 (useSEO Hook 会动态添加更多) -->
+  <!-- 基本 favicon 链接 -->
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
   
@@ -14,18 +14,19 @@
   <!-- Windows 磁贴配置 -->
   <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
   
-  <!-- 基本 meta 标签 (useSEO Hook 会覆盖) -->
+  <!-- 基本 meta 标签 -->
   <meta name="description" content="Institutional-grade investment analytics for everyone. AI-powered stock analysis, portfolio optimization, and technical analysis tools." />
   <meta name="keywords" content="investment analytics, stock analysis, portfolio optimization, financial analysis, AI trading tools" />
   <meta name="theme-color" content="#003d7a" />
   
-  <!-- PWA 优化 meta 标签 -->
+  <!-- iOS 特定优化 -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="ALPHASHOUT">
   <meta name="application-name" content="ALPHASHOUT">
   <meta name="msapplication-TileColor" content="#003d7a">
+  <meta name="format-detection" content="telephone=no">
   
   <!-- SEO 优化 -->
   <meta name="author" content="ALPHASHOUT">
@@ -35,89 +36,477 @@
   <!-- 预加载关键资源 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="dns-prefetch" href="//alphashout.app">
+  <link rel="dns-prefetch" href="//polyfill.io">
   
   <title>ALPHASHOUT - Institutional-Grade Investment Analytics</title>
 
-  <!-- iPhone/Safari 兼容性自动修复 -->
+  <!-- 立即加载所有必要的 Polyfills（iOS Safari 兼容性） -->
+  <script crossorigin="anonymous" src="https://polyfill.io/v3/polyfill.min.js?features=es2015,es2016,es2017,es2018,es2019,es2020,es2021,Promise,Promise.prototype.finally,Object.assign,Object.entries,Object.values,Object.fromEntries,Array.prototype.includes,Array.prototype.flat,Array.prototype.flatMap,String.prototype.includes,String.prototype.startsWith,String.prototype.endsWith,String.prototype.padStart,String.prototype.padEnd,String.prototype.trimStart,String.prototype.trimEnd,Array.from,Array.of,Array.prototype.find,Array.prototype.findIndex,globalThis,queueMicrotask"></script>
+  
+  <!-- iOS Safari 核心兼容性修复 -->
   <script>
-    // 1. 自动加载必要的Polyfills
+    // ========== 核心兼容性修复 ==========
     (function() {
-      try {
-        eval('const test = {}?.prop ?? "default"');
-      } catch (e) {
-        document.write('<script src="https://polyfill.io/v3/polyfill.min.js?features=es2015,es2016,es2017,es2018,es2019,es2020,es2021"><\/script>');
+      'use strict';
+      
+      // 1. 确保 console 对象完整
+      if (!window.console) {
+        window.console = {};
       }
+      var methods = ['log', 'debug', 'info', 'warn', 'error', 'trace', 'group', 'groupEnd', 'time', 'timeEnd'];
+      for (var i = 0; i < methods.length; i++) {
+        if (!console[methods[i]]) {
+          console[methods[i]] = function() {};
+        }
+      }
+      
+      // 2. 修复 requestAnimationFrame (iOS 老版本)
+      var vendors = ['webkit', 'moz', 'ms', 'o'];
+      for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+        window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || 
+                                     window[vendors[x] + 'CancelRequestAnimationFrame'];
+      }
+      
+      if (!window.requestAnimationFrame) {
+        var lastTime = 0;
+        window.requestAnimationFrame = function(callback) {
+          var currTime = new Date().getTime();
+          var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+          var id = window.setTimeout(function() { 
+            callback(currTime + timeToCall); 
+          }, timeToCall);
+          lastTime = currTime + timeToCall;
+          return id;
+        };
+      }
+      
+      if (!window.cancelAnimationFrame) {
+        window.cancelAnimationFrame = function(id) {
+          clearTimeout(id);
+        };
+      }
+      
+      // 3. 修复 Object.assign (如果 polyfill 没有加载)
+      if (typeof Object.assign !== 'function') {
+        Object.defineProperty(Object, 'assign', {
+          value: function assign(target) {
+            if (target === null || target === undefined) {
+              throw new TypeError('Cannot convert undefined or null to object');
+            }
+            var to = Object(target);
+            for (var index = 1; index < arguments.length; index++) {
+              var nextSource = arguments[index];
+              if (nextSource !== null && nextSource !== undefined) {
+                for (var nextKey in nextSource) {
+                  if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                    to[nextKey] = nextSource[nextKey];
+                  }
+                }
+              }
+            }
+            return to;
+          },
+          writable: true,
+          configurable: true
+        });
+      }
+      
+      // 4. 修复 Promise (基础实现，如果需要)
+      if (typeof Promise === 'undefined') {
+        window.Promise = function(executor) {
+          var self = this;
+          self.status = 'pending';
+          self.value = undefined;
+          self.reason = undefined;
+          self.onFulfilledCallbacks = [];
+          self.onRejectedCallbacks = [];
+          
+          function resolve(value) {
+            if (self.status === 'pending') {
+              self.status = 'fulfilled';
+              self.value = value;
+              self.onFulfilledCallbacks.forEach(function(callback) {
+                callback(value);
+              });
+            }
+          }
+          
+          function reject(reason) {
+            if (self.status === 'pending') {
+              self.status = 'rejected';
+              self.reason = reason;
+              self.onRejectedCallbacks.forEach(function(callback) {
+                callback(reason);
+              });
+            }
+          }
+          
+          try {
+            executor(resolve, reject);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        
+        window.Promise.prototype.then = function(onFulfilled, onRejected) {
+          var self = this;
+          return new Promise(function(resolve, reject) {
+            if (self.status === 'fulfilled') {
+              if (typeof onFulfilled === 'function') {
+                try {
+                  var result = onFulfilled(self.value);
+                  resolve(result);
+                } catch (e) {
+                  reject(e);
+                }
+              } else {
+                resolve(self.value);
+              }
+            } else if (self.status === 'rejected') {
+              if (typeof onRejected === 'function') {
+                try {
+                  var result = onRejected(self.reason);
+                  resolve(result);
+                } catch (e) {
+                  reject(e);
+                }
+              } else {
+                reject(self.reason);
+              }
+            } else {
+              self.onFulfilledCallbacks.push(function() {
+                if (typeof onFulfilled === 'function') {
+                  try {
+                    var result = onFulfilled(self.value);
+                    resolve(result);
+                  } catch (e) {
+                    reject(e);
+                  }
+                } else {
+                  resolve(self.value);
+                }
+              });
+              self.onRejectedCallbacks.push(function() {
+                if (typeof onRejected === 'function') {
+                  try {
+                    var result = onRejected(self.reason);
+                    resolve(result);
+                  } catch (e) {
+                    reject(e);
+                  }
+                } else {
+                  reject(self.reason);
+                }
+              });
+            }
+          });
+        };
+        
+        window.Promise.prototype.catch = function(onRejected) {
+          return this.then(null, onRejected);
+        };
+      }
+      
+      // 5. 修复 globalThis
+      if (typeof globalThis === 'undefined') {
+        (function() {
+          if (typeof self !== 'undefined') {
+            self.globalThis = self;
+          } else if (typeof window !== 'undefined') {
+            window.globalThis = window;
+          } else if (typeof global !== 'undefined') {
+            global.globalThis = global;
+          } else {
+            this.globalThis = this;
+          }
+        })();
+      }
+      
     })();
     
-    // 2. 自动修复bundle.js中的新语法
+    // ========== React/JavaScript 语法修复 ==========
     (function() {
       var originalAppendChild = document.head.appendChild;
-      var originalBodyAppendChild = document.body ? document.body.appendChild : null;
+      var originalBodyAppendChild = null;
+      
+      function transformCode(code) {
+        try {
+          // 修复可选链操作符 (?.)
+          code = code.replace(/(\w+)\?\./g, function(match, p1) {
+            return '(' + p1 + ' != null ? ' + p1 + '.';
+          });
+          
+          // 修复空值合并操作符 (??)
+          code = code.replace(/(\w+)\s*\?\?\s*/g, function(match, p1) {
+            return '(' + p1 + ' !== null && ' + p1 + ' !== undefined ? ' + p1 + ' : ';
+          });
+          
+          // 修复其他可能的新语法
+          // 注意：这只是基础修复，复杂情况可能需要更完整的转译
+          
+          return code;
+        } catch (e) {
+          console.error('Code transformation error:', e);
+          return code;
+        }
+      }
       
       function interceptScript(original, parent) {
         return function(element) {
           if (element && element.tagName === 'SCRIPT' && element.src && 
-              (element.src.includes('bundle.js') || element.src.includes('main.') || element.src.includes('static/js/'))) {
+              (element.src.includes('bundle.js') || 
+               element.src.includes('main.') || 
+               element.src.includes('static/js/') ||
+               element.src.includes('chunk'))) {
             
-            fetch(element.src)
-              .then(function(response) { 
-                return response.text(); 
-              })
-              .then(function(code) {
-                var fixedCode = code
-                  .replace(/(\w+)\?\./g, function(match, p1) {
-                    return '(' + p1 + ' && ' + p1 + '.';
-                  })
-                  .replace(/\]\?\./g, '] && temp.')
-                  .replace(/\)\?\./g, ') && temp.')
-                  .replace(/(\w+)\s*\?\?\s*/g, function(match, p1) {
-                    return '(' + p1 + ' !== null && ' + p1 + ' !== undefined ? ' + p1 + ' : ';
-                  });
-                
+            // 对于需要转换的脚本
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', element.src, false); // 同步请求（不推荐但在这里必要）
+            try {
+              xhr.send();
+              if (xhr.status === 200) {
+                var transformedCode = transformCode(xhr.responseText);
                 var newScript = document.createElement('script');
-                newScript.textContent = fixedCode;
-                
-                if (parent === document.head) {
-                  document.head.appendChild(newScript);
-                } else {
-                  document.body.appendChild(newScript);
-                }
-              })
-              .catch(function(error) {
-                if (original) {
-                  original.call(parent, element);
-                }
-              });
-            
-            return element;
+                newScript.textContent = transformedCode;
+                return original.call(parent, newScript);
+              }
+            } catch (e) {
+              console.error('Script loading error:', e);
+            }
           }
           
           return original ? original.call(parent, element) : element;
         };
       }
       
+      // 拦截 head 中的脚本
       document.head.appendChild = interceptScript(originalAppendChild, document.head);
       
+      // 拦截 body 中的脚本
       if (document.body) {
+        originalBodyAppendChild = document.body.appendChild;
         document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
       } else {
         document.addEventListener('DOMContentLoaded', function() {
-          originalBodyAppendChild = document.body.appendChild;
-          document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
+          if (document.body) {
+            originalBodyAppendChild = document.body.appendChild;
+            document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
+          }
         });
       }
     })();
+    
+    // ========== 错误捕获和调试 ==========
+    (function() {
+      var errorCount = 0;
+      var maxErrors = 10;
+      
+      window.addEventListener('error', function(e) {
+        errorCount++;
+        console.error('Global error #' + errorCount + ':', e.message, 'at', e.filename + ':' + e.lineno + ':' + e.colno);
+        
+        // 在开发环境显示错误
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          if (errorCount <= maxErrors) {
+            var errorDiv = document.getElementById('error-display');
+            if (!errorDiv) {
+              errorDiv = document.createElement('div');
+              errorDiv.id = 'error-display';
+              errorDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#ff0000;color:white;padding:10px;z-index:99999;font-size:12px;max-height:200px;overflow-y:auto;';
+              document.body.appendChild(errorDiv);
+            }
+            errorDiv.innerHTML += '<div>Error ' + errorCount + ': ' + e.message + ' (' + e.filename + ':' + e.lineno + ')</div>';
+          }
+        }
+        
+        // 防止错误传播
+        e.preventDefault();
+        return true;
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        e.preventDefault();
+        return true;
+      });
+    })();
   </script>
   
+  <style>
+    /* iOS Safari 优化样式 */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    #root {
+      min-height: 100%;
+    }
+    
+    /* 加载指示器 */
+    #loading-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 99999;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #003D6D;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: #003D6D;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    /* 防止 iOS 橡皮筋效果 */
+    .ios-scroll-fix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  </style>
 </head>
 <body>
+  <!-- 加载指示器 -->
+  <div id="loading-indicator">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading ALPHASHOUT...</div>
+    <div style="margin-top: 10px; color: #666; font-size: 12px;">Investment Analytics Platform</div>
+  </div>
+  
   <noscript>
-    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-      <h2>🍀 ALPHASHOUT</h2>
-      <p>You need to enable JavaScript to run this investment analytics application.</p>
-      <p>Please enable JavaScript in your browser settings and refresh the page.</p>
+    <div style="text-align: center; padding: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100000;">
+      <h2 style="color: #003D6D;">🍀 ALPHASHOUT</h2>
+      <p>JavaScript is required to run this application.</p>
+      <p>Please enable JavaScript in Safari:</p>
+      <ol style="text-align: left; display: inline-block;">
+        <li>Open Settings</li>
+        <li>Scroll to Safari</li>
+        <li>Tap Advanced</li>
+        <li>Enable JavaScript</li>
+      </ol>
     </div>
   </noscript>
+  
   <div id="root"></div>
+  
+  <!-- 应用加载监控和错误恢复 -->
+  <script>
+    (function() {
+      var checkInterval;
+      var checkCount = 0;
+      var maxChecks = 100; // 10秒超时 (100 * 100ms)
+      
+      function hideLoadingIndicator() {
+        var indicator = document.getElementById('loading-indicator');
+        if (indicator) {
+          indicator.style.transition = 'opacity 0.3s';
+          indicator.style.opacity = '0';
+          setTimeout(function() {
+            if (indicator.parentNode) {
+              indicator.parentNode.removeChild(indicator);
+            }
+          }, 300);
+        }
+      }
+      
+      function checkAppLoaded() {
+        checkCount++;
+        var root = document.getElementById('root');
+        
+        // 检查应用是否加载
+        if (root && root.children.length > 0) {
+          clearInterval(checkInterval);
+          hideLoadingIndicator();
+          console.log('App loaded successfully');
+          return;
+        }
+        
+        // 超时处理
+        if (checkCount >= maxChecks) {
+          clearInterval(checkInterval);
+          console.error('App loading timeout');
+          
+          var indicator = document.getElementById('loading-indicator');
+          if (indicator) {
+            indicator.innerHTML = 
+              '<div style="text-align: center; padding: 20px;">' +
+              '<h2 style="color: #003D6D;">Loading Error</h2>' +
+              '<p>The application is taking longer than expected to load.</p>' +
+              '<p>Please try:</p>' +
+              '<ul style="text-align: left; display: inline-block;">' +
+              '<li>Refreshing the page</li>' +
+              '<li>Clearing Safari cache (Settings > Safari > Clear History and Website Data)</li>' +
+              '<li>Checking your internet connection</li>' +
+              '</ul>' +
+              '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #003D6D; color: white; border: none; border-radius: 5px;">Refresh Page</button>' +
+              '</div>';
+          }
+        }
+      }
+      
+      // 开始检查
+      checkInterval = setInterval(checkAppLoaded, 100);
+      
+      // 同时监听 DOMContentLoaded
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkAppLoaded, 100);
+      });
+      
+      // 监听 load 事件
+      window.addEventListener('load', function() {
+        setTimeout(checkAppLoaded, 100);
+      });
+    })();
+  </script>
 </body>
 </html>

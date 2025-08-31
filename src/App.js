@@ -33,7 +33,7 @@ import { MenuOutlined } from '@ant-design/icons';
 
 // Contexts
 import { StockAnalysisProvider, useStockAnalysis } from './StockAnalysisContext';
-import { AuthProvider, useAuth } from './Login3';
+import { AuthProvider, useAuth } from './Login5';
 import { AnalysisProvider, useAnalysis } from './AnalysisContext';
 import { PortfolioProvider, usePortfolio } from './PortfolioContext';
 
