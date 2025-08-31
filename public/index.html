@@ -2,24 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+
+  <!-- Critical: iOS Safari Regex Fix - MUST BE FIRST -->
+  <script>
+    // iOS Safari regex compatibility fix
+    (function() {
+      var testRegex = function() {
+        try {
+          new Function('return /(?<test>\\w+)/')();
+          return true;
+        } catch (e) {
+          return false;
+        }
+      };
+      
+      if (!testRegex()) {
+        console.log('Applying iOS Safari regex fix...');
+        
+        var OriginalRegExp = RegExp;
+        window.RegExp = function(pattern, flags) {
+          if (typeof pattern === 'string') {
+            // Simple replacement for incompatible syntax
+            pattern = pattern
+              .replace(/\(\?<[^>]+>/g, '(')  // Named groups
+              .replace(/\\k<[^>]+>/g, '\\1')  // Named references  
+              .replace(/\(\?<=/g, '')         // Positive lookbehind
+              .replace(/\(\?<!/g, '');        // Negative lookbehind
+          }
+          
+          try {
+            return new OriginalRegExp(pattern, flags);
+          } catch (e) {
+            console.warn('Regex still failed, using fallback:', pattern);
+            return new OriginalRegExp('.+', flags);
+          }
+        };
+        
+        RegExp.prototype = OriginalRegExp.prototype;
+        Object.setPrototypeOf(RegExp, OriginalRegExp);
+        
+        // Fix String.prototype methods
+        ['match', 'replace', 'search', 'split'].forEach(function(method) {
+          var original = String.prototype[method];
+          String.prototype[method] = function(pattern) {
+            if (typeof pattern === 'string' && pattern.includes('(?<')) {
+              pattern = pattern.replace(/\(\?<[^>]+>/g, '(');
+            }
+            return original.apply(this, arguments);
+          };
+        });
+      }
+    })();
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
   
-  <!-- 基本 favicon 链接 -->
+  <!-- Basic favicon links -->
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
   
   <!-- PWA manifest -->
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
   
-  <!-- Windows 磁贴配置 -->
+  <!-- Windows tile config -->
   <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
   
-  <!-- 基本 meta 标签 -->
+  <!-- Basic meta tags -->
   <meta name="description" content="Institutional-grade investment analytics for everyone. AI-powered stock analysis, portfolio optimization, and technical analysis tools." />
   <meta name="keywords" content="investment analytics, stock analysis, portfolio optimization, financial analysis, AI trading tools" />
   <meta name="theme-color" content="#003d7a" />
   
-  <!-- iOS 特定优化 -->
+  <!-- iOS specific optimizations -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28,28 +81,28 @@
   <meta name="msapplication-TileColor" content="#003d7a">
   <meta name="format-detection" content="telephone=no">
   
-  <!-- SEO 优化 -->
+  <!-- SEO optimization -->
   <meta name="author" content="ALPHASHOUT">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://alphashout.app" />
   
-  <!-- 预加载关键资源 -->
+  <!-- Preload critical resources -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="dns-prefetch" href="//alphashout.app">
   <link rel="dns-prefetch" href="//polyfill.io">
   
   <title>ALPHASHOUT - Institutional-Grade Investment Analytics</title>
 
-  <!-- 立即加载所有必要的 Polyfills（iOS Safari 兼容性） -->
+  <!-- Load all necessary Polyfills (iOS Safari compatibility) -->
   <script crossorigin="anonymous" src="https://polyfill.io/v3/polyfill.min.js?features=es2015,es2016,es2017,es2018,es2019,es2020,es2021,Promise,Promise.prototype.finally,Object.assign,Object.entries,Object.values,Object.fromEntries,Array.prototype.includes,Array.prototype.flat,Array.prototype.flatMap,String.prototype.includes,String.prototype.startsWith,String.prototype.endsWith,String.prototype.padStart,String.prototype.padEnd,String.prototype.trimStart,String.prototype.trimEnd,Array.from,Array.of,Array.prototype.find,Array.prototype.findIndex,globalThis,queueMicrotask"></script>
   
-  <!-- iOS Safari 核心兼容性修复 -->
+  <!-- iOS Safari core compatibility fixes -->
   <script>
-    // ========== 核心兼容性修复 ==========
+    // Core compatibility fixes
     (function() {
       'use strict';
       
-      // 1. 确保 console 对象完整
+      // 1. Ensure console object is complete
       if (!window.console) {
         window.console = {};
       }
@@ -60,7 +113,7 @@
         }
       }
       
-      // 2. 修复 requestAnimationFrame (iOS 老版本)
+      // 2. Fix requestAnimationFrame (iOS old versions)
       var vendors = ['webkit', 'moz', 'ms', 'o'];
       for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
@@ -87,7 +140,7 @@
         };
       }
       
-      // 3. 修复 Object.assign (如果 polyfill 没有加载)
+      // 3. Fix Object.assign (if polyfill didn't load)
       if (typeof Object.assign !== 'function') {
         Object.defineProperty(Object, 'assign', {
           value: function assign(target) {
@@ -112,7 +165,7 @@
         });
       }
       
-      // 4. 修复 Promise (基础实现，如果需要)
+      // 4. Fix Promise (basic implementation if needed)
       if (typeof Promise === 'undefined') {
         window.Promise = function(executor) {
           var self = this;
@@ -208,7 +261,7 @@
         };
       }
       
-      // 5. 修复 globalThis
+      // 5. Fix globalThis
       if (typeof globalThis === 'undefined') {
         (function() {
           if (typeof self !== 'undefined') {
@@ -225,25 +278,22 @@
       
     })();
     
-    // ========== React/JavaScript 语法修复 ==========
+    // React/JavaScript syntax fixes
     (function() {
       var originalAppendChild = document.head.appendChild;
       var originalBodyAppendChild = null;
       
       function transformCode(code) {
         try {
-          // 修复可选链操作符 (?.)
+          // Fix optional chaining operator (?.)
           code = code.replace(/(\w+)\?\./g, function(match, p1) {
             return '(' + p1 + ' != null ? ' + p1 + '.';
           });
           
-          // 修复空值合并操作符 (??)
+          // Fix nullish coalescing operator (??)
           code = code.replace(/(\w+)\s*\?\?\s*/g, function(match, p1) {
             return '(' + p1 + ' !== null && ' + p1 + ' !== undefined ? ' + p1 + ' : ';
           });
-          
-          // 修复其他可能的新语法
-          // 注意：这只是基础修复，复杂情况可能需要更完整的转译
           
           return code;
         } catch (e) {
@@ -260,9 +310,9 @@
                element.src.includes('static/js/') ||
                element.src.includes('chunk'))) {
             
-            // 对于需要转换的脚本
+            // For scripts that need transformation
             var xhr = new XMLHttpRequest();
-            xhr.open('GET', element.src, false); // 同步请求（不推荐但在这里必要）
+            xhr.open('GET', element.src, false); // Synchronous request
             try {
               xhr.send();
               if (xhr.status === 200) {
@@ -280,10 +330,10 @@
         };
       }
       
-      // 拦截 head 中的脚本
+      // Intercept head scripts
       document.head.appendChild = interceptScript(originalAppendChild, document.head);
       
-      // 拦截 body 中的脚本
+      // Intercept body scripts
       if (document.body) {
         originalBodyAppendChild = document.body.appendChild;
         document.body.appendChild = interceptScript(originalBodyAppendChild, document.body);
@@ -297,7 +347,7 @@
       }
     })();
     
-    // ========== 错误捕获和调试 ==========
+    // Error catching and debugging
     (function() {
       var errorCount = 0;
       var maxErrors = 10;
@@ -306,7 +356,7 @@
         errorCount++;
         console.error('Global error #' + errorCount + ':', e.message, 'at', e.filename + ':' + e.lineno + ':' + e.colno);
         
-        // 在开发环境显示错误
+        // Show errors in development environment
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
           if (errorCount <= maxErrors) {
             var errorDiv = document.getElementById('error-display');
@@ -320,7 +370,7 @@
           }
         }
         
-        // 防止错误传播
+        // Prevent error propagation
         e.preventDefault();
         return true;
       });
@@ -334,7 +384,7 @@
   </script>
   
   <style>
-    /* iOS Safari 优化样式 */
+    /* iOS Safari optimization styles */
     * {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
@@ -367,7 +417,7 @@
       min-height: 100%;
     }
     
-    /* 加载指示器 */
+    /* Loading indicator */
     #loading-indicator {
       position: fixed;
       top: 0;
@@ -403,7 +453,7 @@
       font-weight: 500;
     }
     
-    /* 防止 iOS 橡皮筋效果 */
+    /* Prevent iOS rubber band effect */
     .ios-scroll-fix {
       position: fixed;
       top: 0;
@@ -415,203 +465,203 @@
     }
   </style>
 
-   <!-- ⭐️ 在这里添加简化版错误监控代码 ⭐️ -->
+  <!-- Simplified error monitoring system -->
   <script>
-  // ========== 简化版错误监控系统 ==========
-  (function() {
-    var errors = [];
-    var maxErrors = 20;
-    var autoHideTimer = null;
-    
-    // 创建简单的错误显示
-    function showErrors() {
-      var div = document.getElementById('simple-error-display');
-      if (!div) {
-        div = document.createElement('div');
-        div.id = 'simple-error-display';
-        div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.95);color:white;padding:10px;z-index:999999;max-height:50vh;overflow-y:auto;font-size:11px;font-family:monospace;display:none;';
-        document.body.appendChild(div);
-      }
+    // Simplified error monitoring system
+    (function() {
+      var errors = [];
+      var maxErrors = 20;
+      var autoHideTimer = null;
       
-      // 清除自动隐藏计时器
-      if (autoHideTimer) {
-        clearTimeout(autoHideTimer);
-        autoHideTimer = null;
-      }
-      
-      if (errors.length === 0) {
-        div.innerHTML = '✅ No errors detected - App loaded successfully';
-        div.style.background = 'rgba(76,175,80,0.95)';
-        div.style.display = 'block';
-        
-        // 5秒后自动隐藏成功消息
-        autoHideTimer = setTimeout(function() {
-          div.style.display = 'none';
-        }, 5000);
-      } else {
-        div.style.background = 'rgba(255,0,0,0.95)';
-        div.style.display = 'block';
-        
-        var errorHtml = '<div style="font-weight:bold;margin-bottom:10px;">⚠️ Errors (' + errors.length + '):</div>';
-        
-        for (var i = 0; i < errors.length; i++) {
-          var err = errors[i];
-          errorHtml += '<div style="margin-bottom:8px;padding:5px;background:rgba(0,0,0,0.2);border-radius:3px;">' +
-            '<div style="color:#ffeb3b;">#' + (i+1) + ' [' + err.time + ']</div>' +
-            '<div style="font-weight:bold;margin:3px 0;">' + escapeHtml(err.message) + '</div>' +
-            (err.source ? '<div style="font-size:9px;opacity:0.8;">' + escapeHtml(err.source) + '</div>' : '') +
-            '</div>';
+      // Create simple error display
+      function showErrors() {
+        var div = document.getElementById('simple-error-display');
+        if (!div) {
+          div = document.createElement('div');
+          div.id = 'simple-error-display';
+          div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.95);color:white;padding:10px;z-index:999999;max-height:50vh;overflow-y:auto;font-size:11px;font-family:monospace;display:none;';
+          document.body.appendChild(div);
         }
         
-        div.innerHTML = errorHtml;
-      }
-      
-      // 添加关闭和复制按钮
-      div.innerHTML += '<div style="position:absolute;top:5px;right:5px;">' +
-        '<button onclick="copyErrors()" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;margin-right:5px;font-size:11px;">📋 Copy</button>' +
-        '<button onclick="document.getElementById(\'simple-error-display\').style.display=\'none\'" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;font-size:11px;">✕ Close</button>' +
-        '</div>';
-    }
-    
-    // HTML转义函数
-    function escapeHtml(text) {
-      var map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      };
-      return (text || '').replace(/[&<>"']/g, function(m) { return map[m]; });
-    }
-    
-    // 复制错误到剪贴板
-    window.copyErrors = function() {
-      var text = 'ALPHASHOUT Error Log\n' + 
-                 'Time: ' + new Date().toString() + '\n' +
-                 'URL: ' + window.location.href + '\n' +
-                 'UserAgent: ' + navigator.userAgent + '\n\n' +
-                 'Errors:\n' + 
-                 errors.map(function(err, i) {
-                   return '#' + (i+1) + ' [' + err.time + ']\n' + 
-                          'Message: ' + err.message + '\n' + 
-                          'Source: ' + (err.source || 'N/A') + '\n';
-                 }).join('\n');
-      
-      // 尝试使用现代API
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
-          alert('Errors copied to clipboard!');
-        }).catch(function() {
-          fallbackCopy(text);
-        });
-      } else {
-        fallbackCopy(text);
-      }
-    };
-    
-    // 降级复制方法
-    function fallbackCopy(text) {
-      var textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        alert('Errors copied to clipboard!');
-      } catch (err) {
-        alert('Copy failed. Please select and copy manually.');
-      }
-      document.body.removeChild(textarea);
-    }
-    
-    // 捕获 JavaScript 错误
-    window.addEventListener('error', function(e) {
-      // 忽略某些无关紧要的错误
-      if (e.message && e.message.indexOf('ResizeObserver') > -1) return;
-      
-      errors.push({
-        message: e.message || 'Unknown error',
-        source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : '',
-        time: new Date().toLocaleTimeString()
-      });
-      
-      if (errors.length > maxErrors) errors.shift();
-      
-      // 延迟显示，避免页面加载时的临时错误
-      setTimeout(showErrors, 100);
-    });
-    
-    // 捕获 Promise 错误
-    window.addEventListener('unhandledrejection', function(e) {
-      var message = 'Promise rejected: ';
-      if (e.reason) {
-        if (typeof e.reason === 'string') {
-          message += e.reason;
-        } else if (e.reason.message) {
-          message += e.reason.message;
-        } else {
-          message += JSON.stringify(e.reason);
+        // Clear auto-hide timer
+        if (autoHideTimer) {
+          clearTimeout(autoHideTimer);
+          autoHideTimer = null;
         }
-      } else {
-        message += 'Unknown reason';
-      }
-      
-      errors.push({
-        message: message,
-        source: 'Promise',
-        time: new Date().toLocaleTimeString()
-      });
-      
-      if (errors.length > maxErrors) errors.shift();
-      setTimeout(showErrors, 100);
-    });
-    
-    // 提供全局函数
-    window.showErrorMonitor = showErrors;
-    window.clearErrors = function() {
-      errors = [];
-      var div = document.getElementById('simple-error-display');
-      if (div) div.style.display = 'none';
-    };
-    
-    // 页面加载完成后检查
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        // 检查 React 应用是否加载
-        var root = document.getElementById('root');
-        if (root && root.children.length > 0) {
-          console.log('✅ ALPHASHOUT loaded successfully');
+        
+        if (errors.length === 0) {
+          div.innerHTML = 'No errors detected - App loaded successfully';
+          div.style.background = 'rgba(76,175,80,0.95)';
+          div.style.display = 'block';
           
-          // 如果没有错误，显示成功消息
-          if (errors.length === 0) {
-            showErrors();
+          // Auto-hide success message after 5 seconds
+          autoHideTimer = setTimeout(function() {
+            div.style.display = 'none';
+          }, 5000);
+        } else {
+          div.style.background = 'rgba(255,0,0,0.95)';
+          div.style.display = 'block';
+          
+          var errorHtml = '<div style="font-weight:bold;margin-bottom:10px;">Errors (' + errors.length + '):</div>';
+          
+          for (var i = 0; i < errors.length; i++) {
+            var err = errors[i];
+            errorHtml += '<div style="margin-bottom:8px;padding:5px;background:rgba(0,0,0,0.2);border-radius:3px;">' +
+              '<div style="color:#ffeb3b;">#' + (i+1) + ' [' + err.time + ']</div>' +
+              '<div style="font-weight:bold;margin:3px 0;">' + escapeHtml(err.message) + '</div>' +
+              (err.source ? '<div style="font-size:9px;opacity:0.8;">' + escapeHtml(err.source) + '</div>' : '') +
+              '</div>';
+          }
+          
+          div.innerHTML = errorHtml;
+        }
+        
+        // Add close and copy buttons
+        div.innerHTML += '<div style="position:absolute;top:5px;right:5px;">' +
+          '<button onclick="copyErrors()" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;margin-right:5px;font-size:11px;">Copy</button>' +
+          '<button onclick="document.getElementById(\'simple-error-display\').style.display=\'none\'" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;font-size:11px;">Close</button>' +
+          '</div>';
+      }
+      
+      // HTML escape function
+      function escapeHtml(text) {
+        var map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return (text || '').replace(/[&<>"']/g, function(m) { return map[m]; });
+      }
+      
+      // Copy errors to clipboard
+      window.copyErrors = function() {
+        var text = 'ALPHASHOUT Error Log\n' + 
+                   'Time: ' + new Date().toString() + '\n' +
+                   'URL: ' + window.location.href + '\n' +
+                   'UserAgent: ' + navigator.userAgent + '\n\n' +
+                   'Errors:\n' + 
+                   errors.map(function(err, i) {
+                     return '#' + (i+1) + ' [' + err.time + ']\n' + 
+                            'Message: ' + err.message + '\n' + 
+                            'Source: ' + (err.source || 'N/A') + '\n';
+                   }).join('\n');
+        
+        // Try modern API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function() {
+            alert('Errors copied to clipboard!');
+          }).catch(function() {
+            fallbackCopy(text);
+          });
+        } else {
+          fallbackCopy(text);
+        }
+      };
+      
+      // Fallback copy method
+      function fallbackCopy(text) {
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          alert('Errors copied to clipboard!');
+        } catch (err) {
+          alert('Copy failed. Please select and copy manually.');
+        }
+        document.body.removeChild(textarea);
+      }
+      
+      // Capture JavaScript errors
+      window.addEventListener('error', function(e) {
+        // Ignore some unimportant errors
+        if (e.message && e.message.indexOf('ResizeObserver') > -1) return;
+        
+        errors.push({
+          message: e.message || 'Unknown error',
+          source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : '',
+          time: new Date().toLocaleTimeString()
+        });
+        
+        if (errors.length > maxErrors) errors.shift();
+        
+        // Delay display to avoid temporary errors during page load
+        setTimeout(showErrors, 100);
+      });
+      
+      // Capture Promise errors
+      window.addEventListener('unhandledrejection', function(e) {
+        var message = 'Promise rejected: ';
+        if (e.reason) {
+          if (typeof e.reason === 'string') {
+            message += e.reason;
+          } else if (e.reason.message) {
+            message += e.reason.message;
+          } else {
+            message += JSON.stringify(e.reason);
           }
         } else {
-          // 应用未加载
-          errors.push({
-            message: 'React app failed to mount',
-            source: 'Application initialization',
-            time: new Date().toLocaleTimeString()
-          });
-          showErrors();
+          message += 'Unknown reason';
         }
-      }, 3000);
-    });
-    
-    // 记录早期错误
-    if (window.__EARLY_ERRORS__ && window.__EARLY_ERRORS__.length > 0) {
-      window.__EARLY_ERRORS__.forEach(function(err) {
-        errors.push(err);
+        
+        errors.push({
+          message: message,
+          source: 'Promise',
+          time: new Date().toLocaleTimeString()
+        });
+        
+        if (errors.length > maxErrors) errors.shift();
+        setTimeout(showErrors, 100);
       });
-    }
-  })();
+      
+      // Provide global functions
+      window.showErrorMonitor = showErrors;
+      window.clearErrors = function() {
+        errors = [];
+        var div = document.getElementById('simple-error-display');
+        if (div) div.style.display = 'none';
+      };
+      
+      // Check after page load
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          // Check if React app loaded
+          var root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            console.log('ALPHASHOUT loaded successfully');
+            
+            // Show success message if no errors
+            if (errors.length === 0) {
+              showErrors();
+            }
+          } else {
+            // App not loaded
+            errors.push({
+              message: 'React app failed to mount',
+              source: 'Application initialization',
+              time: new Date().toLocaleTimeString()
+            });
+            showErrors();
+          }
+        }, 3000);
+      });
+      
+      // Record early errors
+      if (window.__EARLY_ERRORS__ && window.__EARLY_ERRORS__.length > 0) {
+        window.__EARLY_ERRORS__.forEach(function(err) {
+          errors.push(err);
+        });
+      }
+    })();
   </script>
 </head>
 <body>
-  <!-- 加载指示器 -->
+  <!-- Loading indicator -->
   <div id="loading-indicator">
     <div class="spinner"></div>
     <div class="loading-text">Loading ALPHASHOUT...</div>
@@ -620,7 +670,7 @@
   
   <noscript>
     <div style="text-align: center; padding: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100000;">
-      <h2 style="color: #003D6D;">🍀 ALPHASHOUT</h2>
+      <h2 style="color: #003D6D;">ALPHASHOUT</h2>
       <p>JavaScript is required to run this application.</p>
       <p>Please enable JavaScript in Safari:</p>
       <ol style="text-align: left; display: inline-block;">
@@ -634,12 +684,12 @@
   
   <div id="root"></div>
   
-  <!-- 应用加载监控和错误恢复 -->
+  <!-- App loading monitor and error recovery -->
   <script>
     (function() {
       var checkInterval;
       var checkCount = 0;
-      var maxChecks = 100; // 10秒超时 (100 * 100ms)
+      var maxChecks = 100; // 10 second timeout (100 * 100ms)
       
       function hideLoadingIndicator() {
         var indicator = document.getElementById('loading-indicator');
@@ -658,7 +708,7 @@
         checkCount++;
         var root = document.getElementById('root');
         
-        // 检查应用是否加载
+        // Check if app loaded
         if (root && root.children.length > 0) {
           clearInterval(checkInterval);
           hideLoadingIndicator();
@@ -666,7 +716,7 @@
           return;
         }
         
-        // 超时处理
+        // Timeout handling
         if (checkCount >= maxChecks) {
           clearInterval(checkInterval);
           console.error('App loading timeout');
@@ -689,15 +739,15 @@
         }
       }
       
-      // 开始检查
+      // Start checking
       checkInterval = setInterval(checkAppLoaded, 100);
       
-      // 同时监听 DOMContentLoaded
+      // Also listen for DOMContentLoaded
       document.addEventListener('DOMContentLoaded', function() {
         setTimeout(checkAppLoaded, 100);
       });
       
-      // 监听 load 事件
+      // Listen for load event
       window.addEventListener('load', function() {
         setTimeout(checkAppLoaded, 100);
       });

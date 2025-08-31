@@ -1,4 +1,4 @@
-// LoginWrapper.js - Responsive Login Wrapper Component
+// LoginWrapper.js - Fixed version that prevents refresh on mobile input focus
 import React, { useState, useEffect } from 'react';
 import Login5 from './Login5'; // Original desktop login
 import MobileLogin from './MobileLogin'; // New mobile login
@@ -83,6 +83,15 @@ const LoginWrapper = () => {
   const [orientation, setOrientation] = useState(
     window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'
   );
+  
+  // Track if initial detection is done
+  const [initialDetectionDone, setInitialDetectionDone] = useState(false);
+  
+  // Track previous window dimensions to detect real resizes vs keyboard
+  const [prevDimensions, setPrevDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
 
   useEffect(() => {
     // Initial device detection
@@ -90,6 +99,7 @@ const LoginWrapper = () => {
       const type = DeviceDetector.getDeviceType();
       setDeviceType(type);
       setIsLoading(false);
+      setInitialDetectionDone(true);
     };
 
     // Detect orientation
@@ -100,10 +110,34 @@ const LoginWrapper = () => {
     // Handle resize events with debouncing
     let resizeTimeout;
     const handleResize = () => {
+      // Don't reload on mobile if it's just a height change (likely keyboard)
+      const currentWidth = window.innerWidth;
+      const currentHeight = window.innerHeight;
+      
+      // Check if this is a keyboard event (height changed but width didn't)
+      const isKeyboardEvent = 
+        currentWidth === prevDimensions.width && 
+        currentHeight !== prevDimensions.height &&
+        DeviceDetector.isMobile();
+      
+      // Skip re-detection if this is likely a keyboard event
+      if (isKeyboardEvent && initialDetectionDone) {
+        return;
+      }
+      
+      // Only show loading for significant viewport changes
+      const significantChange = Math.abs(currentWidth - prevDimensions.width) > 100;
+      
       clearTimeout(resizeTimeout);
-      setIsLoading(true);
+      
+      if (significantChange) {
+        setIsLoading(true);
+      }
       
       resizeTimeout = setTimeout(() => {
+        // Update stored dimensions
+        setPrevDimensions({ width: currentWidth, height: currentHeight });
+        
         detectDevice();
         detectOrientation();
       }, 300); // Debounce for 300ms
@@ -118,6 +152,23 @@ const LoginWrapper = () => {
         detectDevice();
       }, 100);
     };
+    
+    // Prevent resize handler from firing on focus/blur events
+    const handleFocusIn = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        // Temporarily disable resize listener when input is focused
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+    
+    const handleFocusOut = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        // Re-enable resize listener after a delay
+        setTimeout(() => {
+          window.addEventListener('resize', handleResize);
+        }, 500);
+      }
+    };
 
     // Initial detection
     detectDevice();
@@ -126,14 +177,22 @@ const LoginWrapper = () => {
     // Add event listeners
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleOrientationChange);
+    
+    // Add focus listeners for mobile
+    if (DeviceDetector.isMobile()) {
+      document.addEventListener('focusin', handleFocusIn);
+      document.addEventListener('focusout', handleFocusOut);
+    }
 
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleOrientationChange);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
       clearTimeout(resizeTimeout);
     };
-  }, []);
+  }, [initialDetectionDone, prevDimensions]);
 
   // Show loading during transition
   if (isLoading || !deviceType) {
