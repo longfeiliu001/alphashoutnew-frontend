@@ -1,5 +1,5 @@
 // MobileLogin.js - Professional Mobile Login Component (FIXED)
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, ApiService } from './Login5';
 
@@ -28,16 +28,17 @@ const MobileTheme = {
   }
 };
 
-// Mobile Google Sign-In Button Component
-const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
+// Mobile Google Sign-In Button Component - Memoized to prevent re-renders
+const MobileGoogleButton = memo(({ onSuccess, onError, loading, setLoading }) => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(true);
   const googleButtonRef = useRef(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    let isMounted = true;
+    mountedRef.current = true;
     
     const initGoogle = async () => {
-      if (!isMounted) return;
+      if (!mountedRef.current) return;
       setIsGoogleLoading(true);
       
       // Load Google script if not already loaded
@@ -59,12 +60,12 @@ const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
       // Wait for Google to be ready
       let attempts = 0;
       while (!window.google?.accounts?.id && attempts < 20) {
-        if (!isMounted) return;
+        if (!mountedRef.current) return;
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
 
-      if (window.google?.accounts?.id && googleButtonRef.current && isMounted) {
+      if (window.google?.accounts?.id && googleButtonRef.current && mountedRef.current) {
         try {
           // Define the credential response handler
           const handleCredentialResponse = async (response) => {
@@ -112,25 +113,25 @@ const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
             });
           }
           
-          if (isMounted) setIsGoogleLoading(false);
+          if (mountedRef.current) setIsGoogleLoading(false);
         } catch (error) {
           console.error('Google button render failed:', error);
-          if (isMounted) setIsGoogleLoading(false);
+          if (mountedRef.current) setIsGoogleLoading(false);
         }
       } else {
-        if (isMounted) setIsGoogleLoading(false);
+        if (mountedRef.current) setIsGoogleLoading(false);
       }
     };
 
     initGoogle();
     
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
     };
   }, [onSuccess, onError, setLoading]);
 
   // Fallback button handler
-  const handleFallbackClick = () => {
+  const handleFallbackClick = useCallback(() => {
     const params = new URLSearchParams({
       client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
       redirect_uri: window.location.origin,
@@ -139,7 +140,7 @@ const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
       state: Math.random().toString(36).substring(7)
     });
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  };
+  }, []);
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
@@ -203,7 +204,7 @@ const MobileGoogleButton = ({ onSuccess, onError, loading, setLoading }) => {
       )}
     </div>
   );
-};
+});
 
 // Main Mobile Login Component
 const MobileLogin = () => {
@@ -229,21 +230,19 @@ const MobileLogin = () => {
   const [messageType, setMessageType] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isLoggedOut, setIsLoggedOut] = useState(false); // Track if we've been logged out
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
+  
+  // Use refs for input elements to maintain focus
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
 
   // Listen for logout event from Uservarify
   useEffect(() => {
     const handleUserLogout = () => {
       console.log('MobileLogin: Received logout event');
-      
-      // Mark that we've been logged out
       setIsLoggedOut(true);
-      
-      // Clear any cached message
       setMessage('');
       setMessageType('');
-      
-      // Reset form
       setEmail('');
       setPassword('');
       setIsLogin(true);
@@ -251,7 +250,6 @@ const MobileLogin = () => {
       setIsForgotPassword(false);
     };
     
-    // Also listen for login events to clear the logged out state
     const handleUserLogin = () => {
       console.log('MobileLogin: Received login event');
       setIsLoggedOut(false);
@@ -266,14 +264,27 @@ const MobileLogin = () => {
     };
   }, []);
 
-  // Reset isLoggedOut when user changes (e.g., after a new login)
+  // Reset isLoggedOut when user changes
   useEffect(() => {
     if (user && user.id && user.email) {
       setIsLoggedOut(false);
     }
   }, [user]);
 
-  const handleSubmit = async () => {
+  // Memoized handlers to prevent re-renders
+  const handleEmailChange = useCallback((e) => {
+    setEmail(e.target.value);
+  }, []);
+
+  const handlePasswordChange = useCallback((e) => {
+    setPassword(e.target.value);
+  }, []);
+
+  const handleTogglePassword = useCallback(() => {
+    setShowPassword(prev => !prev);
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
     if (!email || !password) {
       setMessage('Please fill in all fields');
       setMessageType('error');
@@ -292,10 +303,7 @@ const MobileLogin = () => {
 
       setMessage(data.message || (isLogin ? 'Welcome back!' : 'Account created successfully!'));
       setMessageType('success');
-      
-      // Clear the logged out state on successful login
       setIsLoggedOut(false);
-      
       setEmail('');
       setPassword('');
       
@@ -317,15 +325,13 @@ const MobileLogin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, password, isLogin, login, register, navigate]);
 
-  const handleGoogleLogin = async (credential) => {
+  const handleGoogleLogin = useCallback(async (credential) => {
     try {
       const data = await loginWithGoogle(credential);
       setMessage('Google login successful!');
       setMessageType('success');
-      
-      // Clear the logged out state on successful login
       setIsLoggedOut(false);
       
       setTimeout(() => {
@@ -336,9 +342,9 @@ const MobileLogin = () => {
       setMessage(error.message || 'Google login failed');
       setMessageType('error');
     }
-  };
+  }, [loginWithGoogle, navigate]);
 
-  const handleForgotPassword = async () => {
+  const handleForgotPassword = useCallback(async () => {
     if (!email) {
       setMessage('Please enter your email');
       setMessageType('error');
@@ -361,37 +367,34 @@ const MobileLogin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [email]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setLoading(true);
     setMessage('');
     
     try {
-      // Mark as logged out immediately
       setIsLoggedOut(true);
-      
-      // Reset ALL form states
       setEmail('');
       setPassword('');
       setIsLogin(true);
       setShowPassword(false);
       setIsForgotPassword(false);
-      
-      // Call logout to clear backend session
       await logout();
-      
     } catch (error) {
       console.error('Logout error:', error);
-      // Still mark as logged out even if API fails
       setIsLoggedOut(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout]);
+
+  const handleGoogleError = useCallback((error) => {
+    setMessage(error.message || 'Google login failed');
+    setMessageType('error');
+  }, []);
 
   // Check if user is logged in
-  // IMPORTANT: Check isLoggedOut flag FIRST to ensure we show login form after logout
   const isUserLoggedIn = !isLoggedOut && user && user.id && user.email;
 
   // Logged in state - Mobile optimized
@@ -592,17 +595,20 @@ const MobileLogin = () => {
 
           <div style={{ marginBottom: '20px' }}>
             <input
+              ref={emailInputRef}
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               placeholder="Email address"
+              autoComplete="email"
               style={{
                 width: '100%',
                 padding: '16px',
                 fontSize: '16px',
                 border: `1px solid ${MobileTheme.colors.border}`,
                 borderRadius: '8px',
-                outline: 'none'
+                outline: 'none',
+                WebkitAppearance: 'none'
               }}
             />
           </div>
@@ -632,7 +638,8 @@ const MobileLogin = () => {
               fontSize: '16px',
               fontWeight: '500',
               marginBottom: '16px',
-              opacity: loading || !email ? 0.5 : 1
+              opacity: loading || !email ? 0.5 : 1,
+              cursor: loading || !email ? 'not-allowed' : 'pointer'
             }}
           >
             {loading ? 'Sending...' : 'Send Reset Link'}
@@ -649,7 +656,8 @@ const MobileLogin = () => {
               backgroundColor: 'transparent',
               color: MobileTheme.colors.primary,
               border: 'none',
-              fontSize: '16px'
+              fontSize: '16px',
+              cursor: 'pointer'
             }}
           >
             Back to Sign In
@@ -717,7 +725,8 @@ const MobileLogin = () => {
               fontSize: '16px',
               fontWeight: '500',
               color: isLogin ? MobileTheme.colors.primary : MobileTheme.colors.textSecondary,
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              cursor: 'pointer'
             }}
           >
             Sign In
@@ -736,7 +745,8 @@ const MobileLogin = () => {
               fontSize: '16px',
               fontWeight: '500',
               color: !isLogin ? MobileTheme.colors.primary : MobileTheme.colors.textSecondary,
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              cursor: 'pointer'
             }}
           >
             Register
@@ -755,11 +765,15 @@ const MobileLogin = () => {
             Email
           </label>
           <input
+            ref={emailInputRef}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
             placeholder="you@example.com"
             autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
             style={{
               width: '100%',
               padding: '14px',
@@ -767,10 +781,15 @@ const MobileLogin = () => {
               border: `1px solid ${MobileTheme.colors.border}`,
               borderRadius: '8px',
               outline: 'none',
-              WebkitAppearance: 'none'
+              WebkitAppearance: 'none',
+              transition: 'border-color 0.2s'
             }}
-            onFocus={(e) => e.target.style.borderColor = MobileTheme.colors.primary}
-            onBlur={(e) => e.target.style.borderColor = MobileTheme.colors.border}
+            onFocus={(e) => {
+              e.target.style.borderColor = MobileTheme.colors.primary;
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = MobileTheme.colors.border;
+            }}
           />
         </div>
 
@@ -787,9 +806,10 @@ const MobileLogin = () => {
           </label>
           <div style={{ position: 'relative' }}>
             <input
+              ref={passwordInputRef}
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               placeholder="••••••••"
               autoComplete={isLogin ? 'current-password' : 'new-password'}
               style={{
@@ -800,15 +820,20 @@ const MobileLogin = () => {
                 border: `1px solid ${MobileTheme.colors.border}`,
                 borderRadius: '8px',
                 outline: 'none',
-                WebkitAppearance: 'none'
+                WebkitAppearance: 'none',
+                transition: 'border-color 0.2s'
               }}
-              onFocus={(e) => e.target.style.borderColor = MobileTheme.colors.primary}
-              onBlur={(e) => e.target.style.borderColor = MobileTheme.colors.border}
+              onFocus={(e) => {
+                e.target.style.borderColor = MobileTheme.colors.primary;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = MobileTheme.colors.border;
+              }}
               onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={handleTogglePassword}
               style={{
                 position: 'absolute',
                 right: '12px',
@@ -817,7 +842,8 @@ const MobileLogin = () => {
                 background: 'none',
                 border: 'none',
                 padding: '8px',
-                color: MobileTheme.colors.textTertiary
+                color: MobileTheme.colors.textTertiary,
+                cursor: 'pointer'
               }}
             >
               {showPassword ? (
@@ -910,10 +936,7 @@ const MobileLogin = () => {
         {/* Google Sign In */}
         <MobileGoogleButton
           onSuccess={handleGoogleLogin}
-          onError={(error) => {
-            setMessage(error.message || 'Google login failed');
-            setMessageType('error');
-          }}
+          onError={handleGoogleError}
           loading={loading}
           setLoading={setLoading}
         />

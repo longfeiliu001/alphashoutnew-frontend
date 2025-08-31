@@ -414,6 +414,201 @@
       -webkit-overflow-scrolling: touch;
     }
   </style>
+
+   <!-- ⭐️ 在这里添加简化版错误监控代码 ⭐️ -->
+  <script>
+  // ========== 简化版错误监控系统 ==========
+  (function() {
+    var errors = [];
+    var maxErrors = 20;
+    var autoHideTimer = null;
+    
+    // 创建简单的错误显示
+    function showErrors() {
+      var div = document.getElementById('simple-error-display');
+      if (!div) {
+        div = document.createElement('div');
+        div.id = 'simple-error-display';
+        div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.95);color:white;padding:10px;z-index:999999;max-height:50vh;overflow-y:auto;font-size:11px;font-family:monospace;display:none;';
+        document.body.appendChild(div);
+      }
+      
+      // 清除自动隐藏计时器
+      if (autoHideTimer) {
+        clearTimeout(autoHideTimer);
+        autoHideTimer = null;
+      }
+      
+      if (errors.length === 0) {
+        div.innerHTML = '✅ No errors detected - App loaded successfully';
+        div.style.background = 'rgba(76,175,80,0.95)';
+        div.style.display = 'block';
+        
+        // 5秒后自动隐藏成功消息
+        autoHideTimer = setTimeout(function() {
+          div.style.display = 'none';
+        }, 5000);
+      } else {
+        div.style.background = 'rgba(255,0,0,0.95)';
+        div.style.display = 'block';
+        
+        var errorHtml = '<div style="font-weight:bold;margin-bottom:10px;">⚠️ Errors (' + errors.length + '):</div>';
+        
+        for (var i = 0; i < errors.length; i++) {
+          var err = errors[i];
+          errorHtml += '<div style="margin-bottom:8px;padding:5px;background:rgba(0,0,0,0.2);border-radius:3px;">' +
+            '<div style="color:#ffeb3b;">#' + (i+1) + ' [' + err.time + ']</div>' +
+            '<div style="font-weight:bold;margin:3px 0;">' + escapeHtml(err.message) + '</div>' +
+            (err.source ? '<div style="font-size:9px;opacity:0.8;">' + escapeHtml(err.source) + '</div>' : '') +
+            '</div>';
+        }
+        
+        div.innerHTML = errorHtml;
+      }
+      
+      // 添加关闭和复制按钮
+      div.innerHTML += '<div style="position:absolute;top:5px;right:5px;">' +
+        '<button onclick="copyErrors()" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;margin-right:5px;font-size:11px;">📋 Copy</button>' +
+        '<button onclick="document.getElementById(\'simple-error-display\').style.display=\'none\'" style="background:white;color:black;border:none;padding:5px 10px;border-radius:3px;font-size:11px;">✕ Close</button>' +
+        '</div>';
+    }
+    
+    // HTML转义函数
+    function escapeHtml(text) {
+      var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return (text || '').replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    // 复制错误到剪贴板
+    window.copyErrors = function() {
+      var text = 'ALPHASHOUT Error Log\n' + 
+                 'Time: ' + new Date().toString() + '\n' +
+                 'URL: ' + window.location.href + '\n' +
+                 'UserAgent: ' + navigator.userAgent + '\n\n' +
+                 'Errors:\n' + 
+                 errors.map(function(err, i) {
+                   return '#' + (i+1) + ' [' + err.time + ']\n' + 
+                          'Message: ' + err.message + '\n' + 
+                          'Source: ' + (err.source || 'N/A') + '\n';
+                 }).join('\n');
+      
+      // 尝试使用现代API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          alert('Errors copied to clipboard!');
+        }).catch(function() {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    };
+    
+    // 降级复制方法
+    function fallbackCopy(text) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        alert('Errors copied to clipboard!');
+      } catch (err) {
+        alert('Copy failed. Please select and copy manually.');
+      }
+      document.body.removeChild(textarea);
+    }
+    
+    // 捕获 JavaScript 错误
+    window.addEventListener('error', function(e) {
+      // 忽略某些无关紧要的错误
+      if (e.message && e.message.indexOf('ResizeObserver') > -1) return;
+      
+      errors.push({
+        message: e.message || 'Unknown error',
+        source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : '',
+        time: new Date().toLocaleTimeString()
+      });
+      
+      if (errors.length > maxErrors) errors.shift();
+      
+      // 延迟显示，避免页面加载时的临时错误
+      setTimeout(showErrors, 100);
+    });
+    
+    // 捕获 Promise 错误
+    window.addEventListener('unhandledrejection', function(e) {
+      var message = 'Promise rejected: ';
+      if (e.reason) {
+        if (typeof e.reason === 'string') {
+          message += e.reason;
+        } else if (e.reason.message) {
+          message += e.reason.message;
+        } else {
+          message += JSON.stringify(e.reason);
+        }
+      } else {
+        message += 'Unknown reason';
+      }
+      
+      errors.push({
+        message: message,
+        source: 'Promise',
+        time: new Date().toLocaleTimeString()
+      });
+      
+      if (errors.length > maxErrors) errors.shift();
+      setTimeout(showErrors, 100);
+    });
+    
+    // 提供全局函数
+    window.showErrorMonitor = showErrors;
+    window.clearErrors = function() {
+      errors = [];
+      var div = document.getElementById('simple-error-display');
+      if (div) div.style.display = 'none';
+    };
+    
+    // 页面加载完成后检查
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        // 检查 React 应用是否加载
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          console.log('✅ ALPHASHOUT loaded successfully');
+          
+          // 如果没有错误，显示成功消息
+          if (errors.length === 0) {
+            showErrors();
+          }
+        } else {
+          // 应用未加载
+          errors.push({
+            message: 'React app failed to mount',
+            source: 'Application initialization',
+            time: new Date().toLocaleTimeString()
+          });
+          showErrors();
+        }
+      }, 3000);
+    });
+    
+    // 记录早期错误
+    if (window.__EARLY_ERRORS__ && window.__EARLY_ERRORS__.length > 0) {
+      window.__EARLY_ERRORS__.forEach(function(err) {
+        errors.push(err);
+      });
+    }
+  })();
+  </script>
 </head>
 <body>
   <!-- 加载指示器 -->
