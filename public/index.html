@@ -33,7 +33,7 @@
   
   <title>ALPHASHOUT - Institutional-Grade Investment Analytics</title>
   
-  <!-- 样式 -->
+  <!-- Styles -->
   <style>
     * {
       -webkit-tap-highlight-color: transparent;
@@ -125,7 +125,7 @@
   <script>
     (function() {
       // Simple check for app loaded
-      var maxWait = 15000; // 15 seconds max wait
+      var maxWait = 20000; // 20 seconds max wait
       var startTime = Date.now();
       
       function hideLoading() {
@@ -157,9 +157,10 @@
           if (indicator) {
             indicator.innerHTML = 
               '<div style="text-align: center; padding: 20px;">' +
-              '<h2 style="color: #003D6D;">Loading Error</h2>' +
-              '<p>Please refresh the page to try again.</p>' +
-              '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #003D6D; color: white; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>' +
+              '<h2 style="color: #003D6D;">Device Not Supported</h2>' +
+              '<p style="margin: 20px 0; color: #666; line-height: 1.6;">Your device may not be fully supported.</p>' +
+              '<p style="margin: 20px 0; color: #333; font-size: 18px; font-weight: 500;">Please use ALPHASHOUT on a desktop browser for the best experience.</p>' +
+              '<p style="margin-top: 30px; color: #999; font-size: 14px;">Supported browsers: Chrome, Firefox, Safari, Edge</p>' +
               '</div>';
           }
         }
@@ -168,21 +169,6 @@
       // Start checking after a short delay
       setTimeout(checkApp, 100);
     })();
-  </script>
-
-   <!-- vConsole 加在这里，</body> 之前 -->
-  <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
-  <script>
-    // 初始化 vConsole
-    var vConsole = new window.VConsole();
-    console.log('vConsole 调试工具已启动');
-    
-    // 可选：添加自定义日志
-    console.log('设备信息:', {
-      userAgent: navigator.userAgent,
-      iOS版本: navigator.userAgent.match(/OS (\d+)_(\d+)/),
-      Safari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
-    });
   </script>
   
 </body>
