@@ -231,9 +231,9 @@ const UsageInstructions = () => (
           Token Cost:
         </Text>
         <div style={{ marginTop: '4px' }}>
-          <Tag color="blue">Full Analysis: 3 tokens</Tag>
-          <Tag color="green">Refresh: 1 token</Tag>
-          <Tag color="purple">Deep Analysis: 2 tokens</Tag>
+          <Tag color="blue">Full Analysis</Tag>
+          <Tag color="green">Refresh</Tag>
+          <Tag color="purple">Deep Analysis</Tag>
         </div>
       </div>
     </div>
@@ -339,7 +339,7 @@ const RefreshButton = ({ onClick }) => (
     }}
   >
     <ReloadOutlined style={{ fontSize: '10px' }} />
-    Refresh (1 token)
+    Refresh
   </button>
 );
 
@@ -369,7 +369,7 @@ const DeepAnalysisButton = ({ onClick }) => (
         }}
       >
         <ExperimentOutlined style={{ fontSize: '10px' }} />
-        Deep Analysis (2 tokens)
+        Deep Analysis
       </button>
     </Tooltip>
   </div>

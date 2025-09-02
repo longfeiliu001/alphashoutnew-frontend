@@ -609,7 +609,7 @@ export default function StockthirteenMobileDemo() {
                 onClick={handleRefreshClick}
                 icon={<ReloadOutlined />}
               >
-                Refresh (1 token)
+                Refresh
               </Button>
               <Button
                 size="small"
@@ -618,7 +618,7 @@ export default function StockthirteenMobileDemo() {
                 onClick={() => handleDemoDeepAnalysis(activeTab)}
                 icon={<ExperimentOutlined />}
               >
-                Deep Analysis (2 tokens)
+                Deep Analysis
               </Button>
             </Space>
             
